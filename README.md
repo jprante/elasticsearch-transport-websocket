@@ -7,13 +7,13 @@ ElasticSearch offers a HTTP REST API for nearly all the features available, so u
 
 Motivations for implementing an ElasticSearch WebSocket transport layer are
 
-- to complement the resource-centered, short-living HTTP request/response model (REST API) by a persistent, long-lasting, full-duplex communication channel
+- to supersede the HTTP request/response model by a full-duplex communication channel
 
 - to implement scalable and responsive real-time apps, like distributed publish/subscribe services 
 
 - to attach thousands of clients to an ElasticSearch node without service degradation
 
-- to enhance sequences of bulk index and delete operations
+- to allow sequences of bulk index and delete operations on a single connection
 
 - to implement new types of streaming applications like subscribing to change streams from ElasticSearch indexes
 
