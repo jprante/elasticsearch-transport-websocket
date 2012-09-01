@@ -1,0 +1,13 @@
+org.elasticsearch.plugin.websocket
+org.elasticsearch.websocket
+org.elasticsearch.websocket.action
+org.elasticsearch.websocket.client
+org.elasticsearch.websocket.common.bytes
+org.elasticsearch.websocket.common.io.stream
+org.elasticsearch.websocket.common.netty
+org.elasticsearch.websocket.http
+org.elasticsearch.websocket.http.netty
+org.elasticsearch.websocket.http.netty.client
+org.elasticsearch.websocket.rest.action
+org.elasticsearch.websocket.transport.netty
+org.elasticsearch.websocket.transport.support
