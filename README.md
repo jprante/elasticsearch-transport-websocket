@@ -3,19 +3,21 @@ WebSockets for ElasticSearch
 
 The [WebSocket protocol specification](http://tools.ietf.org/html/rfc6455) defines an API that enables web clients to use the WebSockets protocol for two-way communication with a remote host. It  defines a full-duplex communication channel that operates through a single socket over the Web. WebSockets provide an enormous reduction in unnecessary network traffic and latency compared to the unscalable polling and long-polling solutions that were used to simulate a full-duplex connection by maintaining two connections. WebSocket-based applications place less burden on servers, allowing existing machines to support more concurrent connections.
 
-WebSockets are implemented as an [Elasticsearch transport plugin](http://www.elasticsearch.org/guide/reference/modules/plugins.html) using the latest implementation of WebSockets in the [Netty project](http://netty.io).
+ElasticSearch offers a HTTP REST API for nearly all the features available, so using it via ``curl`` or via script languages is comparable to a HTTP client connecting to a HTTP server. Some limitations apply when using the REST API and WebSockets come to the rescue.
 
-Motivations for extending ElasticSearch with WebSockets are
+Motivations for implementing an ElasticSearch WebSocket transport layer are
 
-- to complement the resource-centered, short-living HTTP request/response connection model (REST API) by a persistent, long-lasting, full-duplex communication channel
+- to complement the resource-centered, short-living HTTP request/response model (REST API) by a persistent, long-lasting, full-duplex communication channel
 
-- to implement scalable and responsive real-time apps, like distributed publish/subscribe services with ElasticSearch 
+- to implement scalable and responsive real-time apps, like distributed publish/subscribe services 
 
 - to attach thousands of clients to an ElasticSearch node without service degradation
 
-- to enhance bulk index and delete operations
+- to enhance sequences of bulk index and delete operations
 
-- to implement streaming application like subscribing to change streams from ElasticSearch indexes
+- to implement new types of streaming applications like subscribing to change streams from ElasticSearch indexes
+
+WebSockets are implemented as an [Elasticsearch transport plugin](http://www.elasticsearch.org/guide/reference/modules/plugins.html) using the latest implementation of WebSockets in the [Netty project](http://netty.io).
 
 
 Installation
@@ -25,7 +27,7 @@ The current version of the plugin is **1.0.0**
 
 In order to install the plugin, please run
 
- `bin/plugin -install jprante/elasticsearch-river-jdbc/1.3.2`.
+ `bin/plugin -install jprante/elasticsearch-transport-websocket/1.0.0`.
 
 In case the version number is omitted, you will have the source code installed for manual compilation.
 
