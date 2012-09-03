@@ -51,14 +51,16 @@ Documentation
 Overview
 --------
 
-.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/main/site/images/elasticsearch-websocket.png?raw=true
+.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/main/site/images/transport-modules.png?raw=true
 
 The transport plugin uses Netty WebSockets for server and clients. WebSocket clients can connect to an Elasticsearch Node with the transport plugin installed. Between nodes, WebSockets connections may establish when needed for forwarding messages. The more nodes are installed with websocket transport, the more clients can get connected.
 
 WebSocket Module
 ================
 
-The WebSocket module includes a module that allows to expose the *elasticsearch* `API`  over HTTP.
+.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/main/site/images/elasticsearch-websocket.png?raw=true
+
+The WebSocket module includes a module that allows to expose the *elasticsearch* `API` over HTTP. It is superseding the standard HTTP module on port 9200-9299.
 
 The http mechanism is completely asynchronous in nature, meaning that there is no blocking thread waiting for a response. The benefit of using asynchronous communication for HTTP is solving the `C10k problem <http://en.wikipedia.org/wiki/C10k_problem>`_.  
 
@@ -67,7 +69,7 @@ When possible, consider using `HTTP keep alive <http://en.wikipedia.org/wiki/Kee
 ================================  ======================================================================================
  Setting                           Description                                                                          
 ================================  ======================================================================================
-**websocket.port**                  A bind port range. Defaults to **9400-9500**.                                         
+**websocket.port**                  A bind port range. Defaults to **9400-9499**.                                         
 **websocket.max_content_length**    The max content of an HTTP request. Defaults to **100mb**                             
 **websocket.compression**           Support for compression when possible (with Accept-Encoding). Defaults to **false**.  
 **websocket.compression_level**     Defines the compression level to use. Defaults to **6**.                              
@@ -100,20 +102,6 @@ Both settings allows to be configured with either explicit host address or host 
 **_[networkInterface]:ipv6_**    Resolves to the ipv6 address of the provided network interface. For example **_en0:ipv6_**.  
 ===============================  =============================================================================================
 
-When the **cloud-aws** plugin is installed, the following are also allowed as valid network host settings:
-
-
-=======================  =================================================
- EC2 Host Value           Description                                     
-=======================  =================================================
-**_ec2:privateIpv4_**    The private IP address (ipv4) of the machine.    
-**_ec2:privateDns_**     The private host of the machine.                 
-**_ec2:publicIpv4_**     The public IP address (ipv4) of the machine.     
-**_ec2:publicDns_**      The public host of the machine.                  
-**_ec2_**                Less verbose option for the private ip address.  
-**_ec2:privateIp_**      Less verbose option for the private ip address.  
-**_ec2:publicIp_**       Less verbose option for the public ip address.   
-=======================  =================================================
 
 TCP Settings
 ============
