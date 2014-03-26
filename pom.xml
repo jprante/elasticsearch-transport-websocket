@@ -3,17 +3,23 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.elasticsearch</groupId>
+
+    <groupId>org.xbib.elasticsearch.plugin</groupId>
     <artifactId>elasticsearch-transport-websocket</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0.0</version>
     <packaging>jar</packaging>
+
     <name>elasticsearch-transport-websocket</name>
-    <description>WebSockets define a full-duplex single socket connection 
+    <description>
+        WebSockets define a full-duplex single socket connection
         over which messages can be sent between client and server. 
         WebSockets provides ElasticSearch with a drop-in replacement
         for HTTP and extends it with an asynchronous distributed framework 
-        for publish/subscribe actions.</description>
+        for publish/subscribe actions.
+    </description>
+
     <inceptionYear>2012</inceptionYear>
+
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -21,16 +27,44 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
     <scm>
         <connection>scm:git:git@github.com:jprante/elasticsearch-transport-websocket.git</connection>
         <developerConnection>scm:git:git@github.com:jprante/elasticsearch-transport-websocket.git</developerConnection>
         <url>http://github.com/jprante/elasticsearch-transport-websocket</url>
     </scm>
 
+    <issueManagement>
+        <system>Github Issue Tracker</system>
+        <url>https://github.com/jprante/elasticsearch-transport-websocket/issues</url>
+    </issueManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>bintray-jprante-elasticsearch-plugins-elasticsearch-transport-websocket</id>
+            <name>jprante-elasticsearch-plugins-elasticsearch-transport-websocket</name>
+            <url>https://api.bintray.com/maven/jprante/elasticsearch-plugins/elasticsearch-transport-websocket</url>
+        </repository>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>bintray-elasticsearch-plugins</id>
+            <url>http://dl.bintray.com/jprante/elasticsearch-plugins</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <elasticsearch.version>0.20.0.Beta1-SNAPSHOT</elasticsearch.version>
         <github.global.server>github</github.global.server>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <elasticsearch.version>1.1.0</elasticsearch.version>
+        <netty.version>3.9.0.Final</netty.version>
     </properties>
 
     <dependencies>
@@ -44,79 +78,61 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
-            <version>3.5.5.Final</version>
+            <version>${netty.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.3.1</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <type>jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.6.4</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.6.4</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
-            <version>1.2.16</version>
+            <version>1.2.17</version>
             <scope>test</scope>
         </dependency>
         
     </dependencies>
 
-    <reporting>
-         <plugins>
-            <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-javadoc-plugin</artifactId>
-               <version>2.8.1</version>
-               <configuration>
-                   <encoding>${project.build.sourceEncoding}</encoding>
-                   <locale>en</locale>
-                   <linksource>true</linksource>
-                   <validateLinks>true</validateLinks>
-               </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-report-plugin</artifactId>
-                <version>2.9</version>
-                <configuration>
-                    <includes>
-                        <include>**/*Test.java</include>
-                    </includes>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
-
     <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>es-plugin.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>es-plugin.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
+                <version>3.1</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                    <encoding>UTF-8</encoding>
+                    <optimize>true</optimize>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgument>-Xlint:all,-serial,-path,-rawtypes,-unchecked</compilerArgument>
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.12</version>
+                <version>2.17</version>
                 <configuration>
                     <includes>
                         <include>**/*Test.java</include>
@@ -124,9 +140,8 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
+                <version>2.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -137,8 +152,32 @@
                 </executions>
             </plugin>
             <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.3</version>
+                <version>2.4</version>
                 <configuration>
                     <appendAssemblyId>false</appendAssemblyId>
                     <outputDirectory>${project.build.directory}/releases/</outputDirectory>
@@ -155,51 +194,75 @@
                     </execution>
                 </executions>
             </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>  
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>2.8.1</version>
-                    <configuration>
-                        <encoding>${project.build.sourceEncoding}</encoding>
-                        <locale>en</locale>
-                        <linksource>true</linksource>
-                        <validateLinks>true</validateLinks>
-                    </configuration>
-                    <executions>   
-                        <execution>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-site-plugin</artifactId>
-                    <version>3.0</version>
-                    <configuration>
-                        <locales>en</locales>
-                        <inputEncoding>UTF-8</inputEncoding>  
-                        <outputEncoding>UTF-8</outputEncoding>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>com.github.github</groupId>
-                    <artifactId>site-maven-plugin</artifactId>
-                    <version>0.7</version>
-                    <configuration>
-                        <message>Building site for ${project.version}</message>
-                    </configuration>
-                    <executions>   
-                        <execution>
-                            <goals>
-                                <goal>site</goal>
-                            </goals>
-                            <phase>site</phase>
-                        </execution>
-                    </executions>
-                </plugin>
+            <plugin>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.7</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <locale>en</locale>
+                    <linksource>true</linksource>
+                    <validateLinks>true</validateLinks>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.3</version>
+                <configuration>
+                    <locales>en</locales>
+                    <inputEncoding>UTF-8</inputEncoding>
+                    <outputEncoding>UTF-8</outputEncoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.github</groupId>
+                <artifactId>site-maven-plugin</artifactId>
+                <version>0.9</version>
+                <configuration>
+                    <message>Building site for ${project.version}</message>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>site</goal>
+                        </goals>
+                        <phase>site</phase>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <locale>en</locale>
+                    <linksource>true</linksource>
+                    <validateLinks>true</validateLinks>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>2.17</version>
+            </plugin>
+        </plugins>
+    </reporting>
+
 </project>

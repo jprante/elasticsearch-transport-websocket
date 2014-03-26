@@ -1,4 +1,4 @@
-ElasticSearch WebSocket transport plugin
+Elasticsearch WebSocket transport plugin
 ========================================
 
 This is an implementation of WebSockets for Elasticsearch.
@@ -7,15 +7,15 @@ WebSockets are implemented as an `Elasticsearch transport plugin <http://www.ela
 
 The `WebSocket protocol specification <http://tools.ietf.org/html/rfc6455>`_ defines an API that enables web clients to use the WebSockets protocol for two-way communication with a remote host. It  defines a full-duplex communication channel that operates through a single socket over the Web. WebSockets provide an enormous reduction in unnecessary network traffic and latency compared to the unscalable polling and long-polling solutions that were used to simulate a full-duplex connection by maintaining two connections. WebSocket-based applications place less burden on servers, allowing existing machines to support more concurrent connections.
 
-ElasticSearch offers a HTTP REST API for nearly all the features available, so using it via ``curl`` or via script languages is comparable to a HTTP client connecting to a HTTP server. Some limitations apply when using the REST API and WebSockets come to the rescue.
+Elasticsearch offers a HTTP REST API for nearly all the features available, so using it via ``curl`` or via script languages is comparable to a HTTP client connecting to a HTTP server. Some limitations apply when using the REST API and WebSockets come to the rescue.
 
-Motivations for implementing an ElasticSearch WebSocket transport layer are
+Motivations for implementing an Elasticsearch WebSocket transport layer are
 
 - to supersede the HTTP request/response model by a full-duplex communication channel
 
 - to implement scalable and responsive real-time apps, like distributed publish/subscribe services 
 
-- to attach thousands of clients to an ElasticSearch node without service degradation
+- to attach thousands of clients to an Elasticsearch node without service degradation
 
 - to allow sequences of bulk index and delete operations on a single connection
 
@@ -24,41 +24,36 @@ Motivations for implementing an ElasticSearch WebSocket transport layer are
 Installation
 ------------
 
-The current version of the plugin is **1.0.0**
+=============  ==============  =================  ======================================================================
+ES version     Plugin          Release date       Command
+-------------  --------------  -----------------  ----------------------------------------------------------------------
+1.1.0          1.1.0.0         Mar 26, 2014       ./bin/plugin --install transport-websocket --url http://bit.ly/1m6J2JZ
+=============  ==============  =================  ======================================================================
 
-In order to install the plugin, please run
+Do not forget to restart the node after installing.
 
-``bin/plugin -install jprante/elasticsearch-transport-websocket/1.0.0``.
+Project docs
+------------
 
-In case the version number is omitted, you will have the source code installed for manual compilation.
+The Maven project site is available at `Github <http://jprante.github.io/elasticsearch-transport-websocket>`_
 
-================ ================
-WebSocket Plugin ElasticSearch
-================ ================
-master           0.20.x -> master
-1.0.0            0.20.x           
-================ ================
+Binaries
+--------
 
-Attention: you need at least **Java 7** to run the WebSocket transport plugin.
+Binaries are available at `Bintray <https://bintray.com/pkg/show/general/jprante/elasticsearch-plugins/elasticsearch-transport-websocket>`_
 
-Documentation
--------------
-
-`The Maven project site <http://jprante.github.com/elasticsearch-transport-websocket>`_
-
-`The Javadoc API <http://jprante.github.com/elasticsearch-transport-websocket/apidocs/index.html>`_
 
 Overview
 --------
 
-.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/main/site/images/transport-modules.png?raw=true
+.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/site/resources/transport-modules.png?raw=true
 
 The transport plugin uses Netty WebSockets for server and clients. WebSocket clients can connect to an Elasticsearch Node with the transport plugin installed. Between nodes, WebSockets connections may establish when needed for forwarding messages. The more nodes are installed with websocket transport, the more clients can get connected.
 
 WebSocket Module
 ================
 
-.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/main/site/images/elasticsearch-websocket.png?raw=true
+.. image:: https://github.com/jprante/elasticsearch-transport-websocket/blob/master/src/site/resources/elasticsearch-websocket.png?raw=true
 
 The WebSocket module includes a module that allows to expose the *elasticsearch* `API` over HTTP. It is superseding the standard HTTP module on port 9200-9299.
 
@@ -121,3 +116,22 @@ Disable WebSocket
 
 The websocket module can be completely disabled and not started by setting **websocket.enabled** to **false**.
 
+
+License
+=======
+
+Elasticsearch Websocket Transport Plugin
+
+Copyright (C) 2012 Jörg Prante
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations
