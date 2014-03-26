@@ -1,1 +1,2 @@
-org.elasticsearch.websocket
+org.xbib.elasticsearch.websocket
+org.xbib.elasticsearch.websocket.helper
