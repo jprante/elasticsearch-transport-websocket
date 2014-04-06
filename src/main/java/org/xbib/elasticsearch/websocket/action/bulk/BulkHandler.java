@@ -223,6 +223,18 @@ public class BulkHandler extends BaseInteractiveHandler {
     }
 
     /**
+     * Flushes open bulk actions
+     */
+    public synchronized void flush(InteractiveChannel channel) {
+        if (closed) {
+            return;
+        }
+        if (bulk.size() > 0) {
+            execute(channel);
+        }
+    }
+
+    /**
      * Closes the processor. If flushing by time is enabled, then its shutdown.
      * Any remaining bulk actions are flushed.
      */

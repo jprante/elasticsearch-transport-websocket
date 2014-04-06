@@ -25,6 +25,6 @@ public class BulkFlushAction extends BulkHandler {
 
     @Override
     public void handleRequest(final InteractiveRequest request, final InteractiveChannel channel) {
-        this.flush();
+        this.flush(channel);
     }
 }
