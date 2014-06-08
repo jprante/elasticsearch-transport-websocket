@@ -1,0 +1,963 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package org.xbib.elasticsearch.transport.netty;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import org.elasticsearch.ElasticsearchException;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import org.elasticsearch.ElasticsearchIllegalArgumentException;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import org.elasticsearch.ElasticsearchIllegalStateException;<a name="line.5"></a>
+<span class="sourceLineNo">006</span>import org.elasticsearch.Version;<a name="line.6"></a>
+<span class="sourceLineNo">007</span>import org.elasticsearch.cluster.node.DiscoveryNode;<a name="line.7"></a>
+<span class="sourceLineNo">008</span>import org.elasticsearch.common.Strings;<a name="line.8"></a>
+<span class="sourceLineNo">009</span>import org.elasticsearch.common.collect.ImmutableList;<a name="line.9"></a>
+<span class="sourceLineNo">010</span>import org.elasticsearch.common.collect.Lists;<a name="line.10"></a>
+<span class="sourceLineNo">011</span>import org.elasticsearch.common.component.AbstractLifecycleComponent;<a name="line.11"></a>
+<span class="sourceLineNo">012</span>import org.elasticsearch.common.inject.Inject;<a name="line.12"></a>
+<span class="sourceLineNo">013</span>import org.elasticsearch.common.io.stream.HandlesStreamOutput;<a name="line.13"></a>
+<span class="sourceLineNo">014</span>import org.elasticsearch.common.io.stream.StreamOutput;<a name="line.14"></a>
+<span class="sourceLineNo">015</span>import org.elasticsearch.common.network.NetworkService;<a name="line.15"></a>
+<span class="sourceLineNo">016</span>import org.elasticsearch.common.network.NetworkUtils;<a name="line.16"></a>
+<span class="sourceLineNo">017</span>import org.elasticsearch.common.settings.Settings;<a name="line.17"></a>
+<span class="sourceLineNo">018</span>import org.elasticsearch.common.transport.BoundTransportAddress;<a name="line.18"></a>
+<span class="sourceLineNo">019</span>import org.elasticsearch.common.transport.InetSocketTransportAddress;<a name="line.19"></a>
+<span class="sourceLineNo">020</span>import org.elasticsearch.common.transport.PortsRange;<a name="line.20"></a>
+<span class="sourceLineNo">021</span>import org.elasticsearch.common.transport.TransportAddress;<a name="line.21"></a>
+<span class="sourceLineNo">022</span>import org.elasticsearch.common.unit.ByteSizeValue;<a name="line.22"></a>
+<span class="sourceLineNo">023</span>import org.elasticsearch.common.unit.TimeValue;<a name="line.23"></a>
+<span class="sourceLineNo">024</span>import org.elasticsearch.common.util.BigArrays;<a name="line.24"></a>
+<span class="sourceLineNo">025</span>import org.elasticsearch.common.util.concurrent.EsExecutors;<a name="line.25"></a>
+<span class="sourceLineNo">026</span>import org.elasticsearch.common.util.concurrent.KeyedLock;<a name="line.26"></a>
+<span class="sourceLineNo">027</span>import org.elasticsearch.threadpool.ThreadPool;<a name="line.27"></a>
+<span class="sourceLineNo">028</span>import org.elasticsearch.transport.BindTransportException;<a name="line.28"></a>
+<span class="sourceLineNo">029</span>import org.elasticsearch.transport.ConnectTransportException;<a name="line.29"></a>
+<span class="sourceLineNo">030</span>import org.elasticsearch.transport.NodeNotConnectedException;<a name="line.30"></a>
+<span class="sourceLineNo">031</span>import org.elasticsearch.transport.Transport;<a name="line.31"></a>
+<span class="sourceLineNo">032</span>import org.elasticsearch.transport.TransportException;<a name="line.32"></a>
+<span class="sourceLineNo">033</span>import org.elasticsearch.transport.TransportRequest;<a name="line.33"></a>
+<span class="sourceLineNo">034</span>import org.elasticsearch.transport.TransportRequestOptions;<a name="line.34"></a>
+<span class="sourceLineNo">035</span>import org.elasticsearch.transport.TransportServiceAdapter;<a name="line.35"></a>
+<span class="sourceLineNo">036</span>import org.elasticsearch.transport.support.TransportStatus;<a name="line.36"></a>
+<span class="sourceLineNo">037</span>import org.jboss.netty.bootstrap.ClientBootstrap;<a name="line.37"></a>
+<span class="sourceLineNo">038</span>import org.jboss.netty.bootstrap.ServerBootstrap;<a name="line.38"></a>
+<span class="sourceLineNo">039</span>import org.jboss.netty.buffer.ChannelBuffer;<a name="line.39"></a>
+<span class="sourceLineNo">040</span>import org.jboss.netty.channel.AdaptiveReceiveBufferSizePredictorFactory;<a name="line.40"></a>
+<span class="sourceLineNo">041</span>import org.jboss.netty.channel.Channel;<a name="line.41"></a>
+<span class="sourceLineNo">042</span>import org.jboss.netty.channel.ChannelFuture;<a name="line.42"></a>
+<span class="sourceLineNo">043</span>import org.jboss.netty.channel.ChannelFutureListener;<a name="line.43"></a>
+<span class="sourceLineNo">044</span>import org.jboss.netty.channel.ChannelHandlerContext;<a name="line.44"></a>
+<span class="sourceLineNo">045</span>import org.jboss.netty.channel.ChannelPipeline;<a name="line.45"></a>
+<span class="sourceLineNo">046</span>import org.jboss.netty.channel.ChannelPipelineFactory;<a name="line.46"></a>
+<span class="sourceLineNo">047</span>import org.jboss.netty.channel.Channels;<a name="line.47"></a>
+<span class="sourceLineNo">048</span>import org.jboss.netty.channel.ExceptionEvent;<a name="line.48"></a>
+<span class="sourceLineNo">049</span>import org.jboss.netty.channel.FixedReceiveBufferSizePredictorFactory;<a name="line.49"></a>
+<span class="sourceLineNo">050</span>import org.jboss.netty.channel.ReceiveBufferSizePredictorFactory;<a name="line.50"></a>
+<span class="sourceLineNo">051</span>import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;<a name="line.51"></a>
+<span class="sourceLineNo">052</span>import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;<a name="line.52"></a>
+<span class="sourceLineNo">053</span>import org.jboss.netty.channel.socket.nio.NioWorkerPool;<a name="line.53"></a>
+<span class="sourceLineNo">054</span>import org.jboss.netty.channel.socket.oio.OioClientSocketChannelFactory;<a name="line.54"></a>
+<span class="sourceLineNo">055</span>import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;<a name="line.55"></a>
+<span class="sourceLineNo">056</span>import org.jboss.netty.util.HashedWheelTimer;<a name="line.56"></a>
+<span class="sourceLineNo">057</span>import org.xbib.elasticsearch.common.io.stream.BytesStreamOutput;<a name="line.57"></a>
+<span class="sourceLineNo">058</span>import org.xbib.elasticsearch.common.netty.NettyStaticSetup;<a name="line.58"></a>
+<span class="sourceLineNo">059</span>import org.xbib.elasticsearch.common.netty.OpenChannelsHandler;<a name="line.59"></a>
+<span class="sourceLineNo">060</span><a name="line.60"></a>
+<span class="sourceLineNo">061</span>import java.io.IOException;<a name="line.61"></a>
+<span class="sourceLineNo">062</span>import java.net.InetAddress;<a name="line.62"></a>
+<span class="sourceLineNo">063</span>import java.net.InetSocketAddress;<a name="line.63"></a>
+<span class="sourceLineNo">064</span>import java.net.SocketAddress;<a name="line.64"></a>
+<span class="sourceLineNo">065</span>import java.util.ArrayList;<a name="line.65"></a>
+<span class="sourceLineNo">066</span>import java.util.Iterator;<a name="line.66"></a>
+<span class="sourceLineNo">067</span>import java.util.List;<a name="line.67"></a>
+<span class="sourceLineNo">068</span>import java.util.Map;<a name="line.68"></a>
+<span class="sourceLineNo">069</span>import java.util.Set;<a name="line.69"></a>
+<span class="sourceLineNo">070</span>import java.util.concurrent.ConcurrentMap;<a name="line.70"></a>
+<span class="sourceLineNo">071</span>import java.util.concurrent.CountDownLatch;<a name="line.71"></a>
+<span class="sourceLineNo">072</span>import java.util.concurrent.Executors;<a name="line.72"></a>
+<span class="sourceLineNo">073</span>import java.util.concurrent.TimeUnit;<a name="line.73"></a>
+<span class="sourceLineNo">074</span>import java.util.concurrent.atomic.AtomicInteger;<a name="line.74"></a>
+<span class="sourceLineNo">075</span>import java.util.concurrent.atomic.AtomicReference;<a name="line.75"></a>
+<span class="sourceLineNo">076</span>import java.util.concurrent.locks.ReadWriteLock;<a name="line.76"></a>
+<span class="sourceLineNo">077</span>import java.util.concurrent.locks.ReentrantReadWriteLock;<a name="line.77"></a>
+<span class="sourceLineNo">078</span><a name="line.78"></a>
+<span class="sourceLineNo">079</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_BLOCKING;<a name="line.79"></a>
+<span class="sourceLineNo">080</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_BLOCKING_CLIENT;<a name="line.80"></a>
+<span class="sourceLineNo">081</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_BLOCKING_SERVER;<a name="line.81"></a>
+<span class="sourceLineNo">082</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_CONNECT_TIMEOUT;<a name="line.82"></a>
+<span class="sourceLineNo">083</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_DEFAULT_CONNECT_TIMEOUT;<a name="line.83"></a>
+<span class="sourceLineNo">084</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_DEFAULT_RECEIVE_BUFFER_SIZE;<a name="line.84"></a>
+<span class="sourceLineNo">085</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_DEFAULT_SEND_BUFFER_SIZE;<a name="line.85"></a>
+<span class="sourceLineNo">086</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_KEEP_ALIVE;<a name="line.86"></a>
+<span class="sourceLineNo">087</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_NO_DELAY;<a name="line.87"></a>
+<span class="sourceLineNo">088</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_RECEIVE_BUFFER_SIZE;<a name="line.88"></a>
+<span class="sourceLineNo">089</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_REUSE_ADDRESS;<a name="line.89"></a>
+<span class="sourceLineNo">090</span>import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_SEND_BUFFER_SIZE;<a name="line.90"></a>
+<span class="sourceLineNo">091</span>import static org.elasticsearch.common.transport.NetworkExceptionHelper.isCloseConnectionException;<a name="line.91"></a>
+<span class="sourceLineNo">092</span>import static org.elasticsearch.common.transport.NetworkExceptionHelper.isConnectException;<a name="line.92"></a>
+<span class="sourceLineNo">093</span>import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;<a name="line.93"></a>
+<span class="sourceLineNo">094</span>import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;<a name="line.94"></a>
+<span class="sourceLineNo">095</span><a name="line.95"></a>
+<span class="sourceLineNo">096</span><a name="line.96"></a>
+<span class="sourceLineNo">097</span>/**<a name="line.97"></a>
+<span class="sourceLineNo">098</span> * There are 4 types of connections per node, low/med/high/ping. Low if for batch oriented APIs (like recovery or<a name="line.98"></a>
+<span class="sourceLineNo">099</span> * batch) with high payload that will cause regular request. (like search or single index) to take<a name="line.99"></a>
+<span class="sourceLineNo">100</span> * longer. Med is for the typical search / single doc index. And High for things like cluster state. Ping is reserved for<a name="line.100"></a>
+<span class="sourceLineNo">101</span> * sending out ping requests to other nodes.<a name="line.101"></a>
+<span class="sourceLineNo">102</span> */<a name="line.102"></a>
+<span class="sourceLineNo">103</span>public class NettyTransport extends AbstractLifecycleComponent&lt;Transport&gt; implements Transport {<a name="line.103"></a>
+<span class="sourceLineNo">104</span><a name="line.104"></a>
+<span class="sourceLineNo">105</span>    static {<a name="line.105"></a>
+<span class="sourceLineNo">106</span>        NettyStaticSetup.setup();<a name="line.106"></a>
+<span class="sourceLineNo">107</span>    }<a name="line.107"></a>
+<span class="sourceLineNo">108</span><a name="line.108"></a>
+<span class="sourceLineNo">109</span>    private final NetworkService networkService;<a name="line.109"></a>
+<span class="sourceLineNo">110</span><a name="line.110"></a>
+<span class="sourceLineNo">111</span>    final Version version;<a name="line.111"></a>
+<span class="sourceLineNo">112</span><a name="line.112"></a>
+<span class="sourceLineNo">113</span>    final int workerCount;<a name="line.113"></a>
+<span class="sourceLineNo">114</span><a name="line.114"></a>
+<span class="sourceLineNo">115</span>    final int bossCount;<a name="line.115"></a>
+<span class="sourceLineNo">116</span><a name="line.116"></a>
+<span class="sourceLineNo">117</span>    final boolean blockingServer;<a name="line.117"></a>
+<span class="sourceLineNo">118</span><a name="line.118"></a>
+<span class="sourceLineNo">119</span>    final boolean blockingClient;<a name="line.119"></a>
+<span class="sourceLineNo">120</span><a name="line.120"></a>
+<span class="sourceLineNo">121</span>    final String port;<a name="line.121"></a>
+<span class="sourceLineNo">122</span><a name="line.122"></a>
+<span class="sourceLineNo">123</span>    final String bindHost;<a name="line.123"></a>
+<span class="sourceLineNo">124</span><a name="line.124"></a>
+<span class="sourceLineNo">125</span>    final String publishHost;<a name="line.125"></a>
+<span class="sourceLineNo">126</span><a name="line.126"></a>
+<span class="sourceLineNo">127</span>    final boolean compress;<a name="line.127"></a>
+<span class="sourceLineNo">128</span><a name="line.128"></a>
+<span class="sourceLineNo">129</span>    final TimeValue connectTimeout;<a name="line.129"></a>
+<span class="sourceLineNo">130</span><a name="line.130"></a>
+<span class="sourceLineNo">131</span>    final Boolean tcpNoDelay;<a name="line.131"></a>
+<span class="sourceLineNo">132</span><a name="line.132"></a>
+<span class="sourceLineNo">133</span>    final Boolean tcpKeepAlive;<a name="line.133"></a>
+<span class="sourceLineNo">134</span><a name="line.134"></a>
+<span class="sourceLineNo">135</span>    final Boolean reuseAddress;<a name="line.135"></a>
+<span class="sourceLineNo">136</span><a name="line.136"></a>
+<span class="sourceLineNo">137</span>    final ByteSizeValue tcpSendBufferSize;<a name="line.137"></a>
+<span class="sourceLineNo">138</span><a name="line.138"></a>
+<span class="sourceLineNo">139</span>    final ByteSizeValue tcpReceiveBufferSize;<a name="line.139"></a>
+<span class="sourceLineNo">140</span><a name="line.140"></a>
+<span class="sourceLineNo">141</span>    final ReceiveBufferSizePredictorFactory receiveBufferSizePredictorFactory;<a name="line.141"></a>
+<span class="sourceLineNo">142</span><a name="line.142"></a>
+<span class="sourceLineNo">143</span>    final int connectionsPerNodeRecovery;<a name="line.143"></a>
+<span class="sourceLineNo">144</span>    final int connectionsPerNodeBulk;<a name="line.144"></a>
+<span class="sourceLineNo">145</span>    final int connectionsPerNodeReg;<a name="line.145"></a>
+<span class="sourceLineNo">146</span>    final int connectionsPerNodeState;<a name="line.146"></a>
+<span class="sourceLineNo">147</span>    final int connectionsPerNodePing;<a name="line.147"></a>
+<span class="sourceLineNo">148</span><a name="line.148"></a>
+<span class="sourceLineNo">149</span>    final ByteSizeValue maxCumulationBufferCapacity;<a name="line.149"></a>
+<span class="sourceLineNo">150</span><a name="line.150"></a>
+<span class="sourceLineNo">151</span>    final BigArrays bigArrays;<a name="line.151"></a>
+<span class="sourceLineNo">152</span><a name="line.152"></a>
+<span class="sourceLineNo">153</span>    final int maxCompositeBufferComponents;<a name="line.153"></a>
+<span class="sourceLineNo">154</span><a name="line.154"></a>
+<span class="sourceLineNo">155</span>    private final ThreadPool threadPool;<a name="line.155"></a>
+<span class="sourceLineNo">156</span><a name="line.156"></a>
+<span class="sourceLineNo">157</span>    private volatile OpenChannelsHandler serverOpenChannels;<a name="line.157"></a>
+<span class="sourceLineNo">158</span><a name="line.158"></a>
+<span class="sourceLineNo">159</span>    private volatile ClientBootstrap clientBootstrap;<a name="line.159"></a>
+<span class="sourceLineNo">160</span><a name="line.160"></a>
+<span class="sourceLineNo">161</span>    private volatile ServerBootstrap serverBootstrap;<a name="line.161"></a>
+<span class="sourceLineNo">162</span><a name="line.162"></a>
+<span class="sourceLineNo">163</span>    // node id to actual channel<a name="line.163"></a>
+<span class="sourceLineNo">164</span>    final ConcurrentMap&lt;DiscoveryNode, NodeChannels&gt; connectedNodes = newConcurrentMap();<a name="line.164"></a>
+<span class="sourceLineNo">165</span><a name="line.165"></a>
+<span class="sourceLineNo">166</span>    private volatile Channel serverChannel;<a name="line.166"></a>
+<span class="sourceLineNo">167</span><a name="line.167"></a>
+<span class="sourceLineNo">168</span>    private volatile TransportServiceAdapter transportServiceAdapter;<a name="line.168"></a>
+<span class="sourceLineNo">169</span><a name="line.169"></a>
+<span class="sourceLineNo">170</span>    private volatile BoundTransportAddress boundAddress;<a name="line.170"></a>
+<span class="sourceLineNo">171</span><a name="line.171"></a>
+<span class="sourceLineNo">172</span>    private final KeyedLock&lt;String&gt; connectionLock = new KeyedLock&lt;String&gt;();<a name="line.172"></a>
+<span class="sourceLineNo">173</span><a name="line.173"></a>
+<span class="sourceLineNo">174</span>    // this lock is here to make sure we close this transport and disconnect all the client nodes<a name="line.174"></a>
+<span class="sourceLineNo">175</span>    // connections while no connect operations is going on... (this might help with 100% CPU when stopping the transport?)<a name="line.175"></a>
+<span class="sourceLineNo">176</span>    private final ReadWriteLock globalLock = new ReentrantReadWriteLock();<a name="line.176"></a>
+<span class="sourceLineNo">177</span><a name="line.177"></a>
+<span class="sourceLineNo">178</span>    @Inject<a name="line.178"></a>
+<span class="sourceLineNo">179</span>    public NettyTransport(Settings settings, ThreadPool threadPool, NetworkService networkService, BigArrays bigArrays, Version version) {<a name="line.179"></a>
+<span class="sourceLineNo">180</span>        super(settings);<a name="line.180"></a>
+<span class="sourceLineNo">181</span>        this.threadPool = threadPool;<a name="line.181"></a>
+<span class="sourceLineNo">182</span>        this.networkService = networkService;<a name="line.182"></a>
+<span class="sourceLineNo">183</span>        this.bigArrays = bigArrays;<a name="line.183"></a>
+<span class="sourceLineNo">184</span>        this.version = version;<a name="line.184"></a>
+<span class="sourceLineNo">185</span><a name="line.185"></a>
+<span class="sourceLineNo">186</span>        if (settings.getAsBoolean("netty.epollBugWorkaround", false)) {<a name="line.186"></a>
+<span class="sourceLineNo">187</span>            System.setProperty("org.jboss.netty.epollBugWorkaround", "true");<a name="line.187"></a>
+<span class="sourceLineNo">188</span>        }<a name="line.188"></a>
+<span class="sourceLineNo">189</span><a name="line.189"></a>
+<span class="sourceLineNo">190</span>        this.workerCount = componentSettings.getAsInt("worker_count", EsExecutors.boundedNumberOfProcessors(settings) * 2);<a name="line.190"></a>
+<span class="sourceLineNo">191</span>        this.bossCount = componentSettings.getAsInt("boss_count", 1);<a name="line.191"></a>
+<span class="sourceLineNo">192</span>        this.blockingServer = settings.getAsBoolean("transport.tcp.blocking_server", settings.getAsBoolean(TCP_BLOCKING_SERVER, settings.getAsBoolean(TCP_BLOCKING, false)));<a name="line.192"></a>
+<span class="sourceLineNo">193</span>        this.blockingClient = settings.getAsBoolean("transport.tcp.blocking_client", settings.getAsBoolean(TCP_BLOCKING_CLIENT, settings.getAsBoolean(TCP_BLOCKING, false)));<a name="line.193"></a>
+<span class="sourceLineNo">194</span>        this.port = componentSettings.get("port", settings.get("transport.tcp.port", "9300-9400"));<a name="line.194"></a>
+<span class="sourceLineNo">195</span>        this.bindHost = componentSettings.get("bind_host", settings.get("transport.bind_host", settings.get("transport.host")));<a name="line.195"></a>
+<span class="sourceLineNo">196</span>        this.publishHost = componentSettings.get("publish_host", settings.get("transport.publish_host", settings.get("transport.host")));<a name="line.196"></a>
+<span class="sourceLineNo">197</span>        this.compress = settings.getAsBoolean("transport.tcp.compress", false);<a name="line.197"></a>
+<span class="sourceLineNo">198</span>        this.connectTimeout = componentSettings.getAsTime("connect_timeout", settings.getAsTime("transport.tcp.connect_timeout", settings.getAsTime(TCP_CONNECT_TIMEOUT, TCP_DEFAULT_CONNECT_TIMEOUT)));<a name="line.198"></a>
+<span class="sourceLineNo">199</span>        this.tcpNoDelay = componentSettings.getAsBoolean("tcp_no_delay", settings.getAsBoolean(TCP_NO_DELAY, true));<a name="line.199"></a>
+<span class="sourceLineNo">200</span>        this.tcpKeepAlive = componentSettings.getAsBoolean("tcp_keep_alive", settings.getAsBoolean(TCP_KEEP_ALIVE, true));<a name="line.200"></a>
+<span class="sourceLineNo">201</span>        this.reuseAddress = componentSettings.getAsBoolean("reuse_address", settings.getAsBoolean(TCP_REUSE_ADDRESS, NetworkUtils.defaultReuseAddress()));<a name="line.201"></a>
+<span class="sourceLineNo">202</span>        this.tcpSendBufferSize = componentSettings.getAsBytesSize("tcp_send_buffer_size", settings.getAsBytesSize(TCP_SEND_BUFFER_SIZE, TCP_DEFAULT_SEND_BUFFER_SIZE));<a name="line.202"></a>
+<span class="sourceLineNo">203</span>        this.tcpReceiveBufferSize = componentSettings.getAsBytesSize("tcp_receive_buffer_size", settings.getAsBytesSize(TCP_RECEIVE_BUFFER_SIZE, TCP_DEFAULT_RECEIVE_BUFFER_SIZE));<a name="line.203"></a>
+<span class="sourceLineNo">204</span>        this.connectionsPerNodeRecovery = componentSettings.getAsInt("connections_per_node.recovery", settings.getAsInt("transport.connections_per_node.recovery", 2));<a name="line.204"></a>
+<span class="sourceLineNo">205</span>        this.connectionsPerNodeBulk = componentSettings.getAsInt("connections_per_node.bulk", settings.getAsInt("transport.connections_per_node.bulk", 3));<a name="line.205"></a>
+<span class="sourceLineNo">206</span>        this.connectionsPerNodeReg = componentSettings.getAsInt("connections_per_node.reg", settings.getAsInt("transport.connections_per_node.reg", 6));<a name="line.206"></a>
+<span class="sourceLineNo">207</span>        this.connectionsPerNodeState = componentSettings.getAsInt("connections_per_node.high", settings.getAsInt("transport.connections_per_node.state", 1));<a name="line.207"></a>
+<span class="sourceLineNo">208</span>        this.connectionsPerNodePing = componentSettings.getAsInt("connections_per_node.ping", settings.getAsInt("transport.connections_per_node.ping", 1));<a name="line.208"></a>
+<span class="sourceLineNo">209</span><a name="line.209"></a>
+<span class="sourceLineNo">210</span>        // we want to have at least 1 for reg/state/ping<a name="line.210"></a>
+<span class="sourceLineNo">211</span>        if (this.connectionsPerNodeReg == 0) {<a name="line.211"></a>
+<span class="sourceLineNo">212</span>            throw new ElasticsearchIllegalArgumentException("can't set [connection_per_node.reg] to 0");<a name="line.212"></a>
+<span class="sourceLineNo">213</span>        }<a name="line.213"></a>
+<span class="sourceLineNo">214</span>        if (this.connectionsPerNodePing == 0) {<a name="line.214"></a>
+<span class="sourceLineNo">215</span>            throw new ElasticsearchIllegalArgumentException("can't set [connection_per_node.ping] to 0");<a name="line.215"></a>
+<span class="sourceLineNo">216</span>        }<a name="line.216"></a>
+<span class="sourceLineNo">217</span>        if (this.connectionsPerNodeState == 0) {<a name="line.217"></a>
+<span class="sourceLineNo">218</span>            throw new ElasticsearchIllegalArgumentException("can't set [connection_per_node.state] to 0");<a name="line.218"></a>
+<span class="sourceLineNo">219</span>        }<a name="line.219"></a>
+<span class="sourceLineNo">220</span><a name="line.220"></a>
+<span class="sourceLineNo">221</span>        this.maxCumulationBufferCapacity = componentSettings.getAsBytesSize("max_cumulation_buffer_capacity", null);<a name="line.221"></a>
+<span class="sourceLineNo">222</span>        this.maxCompositeBufferComponents = componentSettings.getAsInt("max_composite_buffer_components", -1);<a name="line.222"></a>
+<span class="sourceLineNo">223</span><a name="line.223"></a>
+<span class="sourceLineNo">224</span>        long defaultReceiverPredictor = 512 * 1024;<a name="line.224"></a>
+<span class="sourceLineNo">225</span><a name="line.225"></a>
+<span class="sourceLineNo">226</span>        // skip JVM info<a name="line.226"></a>
+<span class="sourceLineNo">227</span><a name="line.227"></a>
+<span class="sourceLineNo">228</span>        // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one<a name="line.228"></a>
+<span class="sourceLineNo">229</span>        ByteSizeValue receivePredictorMin = componentSettings.getAsBytesSize("receive_predictor_min", componentSettings.getAsBytesSize("receive_predictor_size", new ByteSizeValue(defaultReceiverPredictor)));<a name="line.229"></a>
+<span class="sourceLineNo">230</span>        ByteSizeValue receivePredictorMax = componentSettings.getAsBytesSize("receive_predictor_max", componentSettings.getAsBytesSize("receive_predictor_size", new ByteSizeValue(defaultReceiverPredictor)));<a name="line.230"></a>
+<span class="sourceLineNo">231</span>        if (receivePredictorMax.bytes() == receivePredictorMin.bytes()) {<a name="line.231"></a>
+<span class="sourceLineNo">232</span>            receiveBufferSizePredictorFactory = new FixedReceiveBufferSizePredictorFactory((int) receivePredictorMax.bytes());<a name="line.232"></a>
+<span class="sourceLineNo">233</span>        } else {<a name="line.233"></a>
+<span class="sourceLineNo">234</span>            receiveBufferSizePredictorFactory = new AdaptiveReceiveBufferSizePredictorFactory((int) receivePredictorMin.bytes(), (int) receivePredictorMin.bytes(), (int) receivePredictorMax.bytes());<a name="line.234"></a>
+<span class="sourceLineNo">235</span>        }<a name="line.235"></a>
+<span class="sourceLineNo">236</span><a name="line.236"></a>
+<span class="sourceLineNo">237</span>        logger.debug("using worker_count[{}], port[{}], bind_host[{}], publish_host[{}], compress[{}], connect_timeout[{}], connections_per_node[{}/{}/{}/{}/{}], receive_predictor[{}-&gt;{}]",<a name="line.237"></a>
+<span class="sourceLineNo">238</span>                workerCount, port, bindHost, publishHost, compress, connectTimeout, connectionsPerNodeRecovery, connectionsPerNodeBulk, connectionsPerNodeReg, connectionsPerNodeState, connectionsPerNodePing, receivePredictorMin, receivePredictorMax);<a name="line.238"></a>
+<span class="sourceLineNo">239</span>    }<a name="line.239"></a>
+<span class="sourceLineNo">240</span><a name="line.240"></a>
+<span class="sourceLineNo">241</span>    public Settings settings() {<a name="line.241"></a>
+<span class="sourceLineNo">242</span>        return this.settings;<a name="line.242"></a>
+<span class="sourceLineNo">243</span>    }<a name="line.243"></a>
+<span class="sourceLineNo">244</span><a name="line.244"></a>
+<span class="sourceLineNo">245</span>    @Override<a name="line.245"></a>
+<span class="sourceLineNo">246</span>    public void transportServiceAdapter(TransportServiceAdapter service) {<a name="line.246"></a>
+<span class="sourceLineNo">247</span>        this.transportServiceAdapter = service;<a name="line.247"></a>
+<span class="sourceLineNo">248</span>    }<a name="line.248"></a>
+<span class="sourceLineNo">249</span><a name="line.249"></a>
+<span class="sourceLineNo">250</span>    TransportServiceAdapter transportServiceAdapter() {<a name="line.250"></a>
+<span class="sourceLineNo">251</span>        return transportServiceAdapter;<a name="line.251"></a>
+<span class="sourceLineNo">252</span>    }<a name="line.252"></a>
+<span class="sourceLineNo">253</span><a name="line.253"></a>
+<span class="sourceLineNo">254</span>    ThreadPool threadPool() {<a name="line.254"></a>
+<span class="sourceLineNo">255</span>        return threadPool;<a name="line.255"></a>
+<span class="sourceLineNo">256</span>    }<a name="line.256"></a>
+<span class="sourceLineNo">257</span><a name="line.257"></a>
+<span class="sourceLineNo">258</span>    @Override<a name="line.258"></a>
+<span class="sourceLineNo">259</span>    protected void doStart() throws ElasticsearchException {<a name="line.259"></a>
+<span class="sourceLineNo">260</span>        if (blockingClient) {<a name="line.260"></a>
+<span class="sourceLineNo">261</span>            clientBootstrap = new ClientBootstrap(new OioClientSocketChannelFactory(Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_client_worker"))));<a name="line.261"></a>
+<span class="sourceLineNo">262</span>        } else {<a name="line.262"></a>
+<span class="sourceLineNo">263</span>            clientBootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(<a name="line.263"></a>
+<span class="sourceLineNo">264</span>                    Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_client_boss")),<a name="line.264"></a>
+<span class="sourceLineNo">265</span>                    bossCount,<a name="line.265"></a>
+<span class="sourceLineNo">266</span>                    new NioWorkerPool(Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_client_worker")), workerCount),<a name="line.266"></a>
+<span class="sourceLineNo">267</span>                    new HashedWheelTimer(daemonThreadFactory(settings, "transport_client_timer"))));<a name="line.267"></a>
+<span class="sourceLineNo">268</span>        }<a name="line.268"></a>
+<span class="sourceLineNo">269</span>        ChannelPipelineFactory clientPipelineFactory = new ChannelPipelineFactory() {<a name="line.269"></a>
+<span class="sourceLineNo">270</span>            @Override<a name="line.270"></a>
+<span class="sourceLineNo">271</span>            public ChannelPipeline getPipeline() throws Exception {<a name="line.271"></a>
+<span class="sourceLineNo">272</span>                ChannelPipeline pipeline = Channels.pipeline();<a name="line.272"></a>
+<span class="sourceLineNo">273</span>                SizeHeaderFrameDecoder sizeHeader = new SizeHeaderFrameDecoder();<a name="line.273"></a>
+<span class="sourceLineNo">274</span>                if (maxCumulationBufferCapacity != null) {<a name="line.274"></a>
+<span class="sourceLineNo">275</span>                    if (maxCumulationBufferCapacity.bytes() &gt; Integer.MAX_VALUE) {<a name="line.275"></a>
+<span class="sourceLineNo">276</span>                        sizeHeader.setMaxCumulationBufferCapacity(Integer.MAX_VALUE);<a name="line.276"></a>
+<span class="sourceLineNo">277</span>                    } else {<a name="line.277"></a>
+<span class="sourceLineNo">278</span>                        sizeHeader.setMaxCumulationBufferCapacity((int) maxCumulationBufferCapacity.bytes());<a name="line.278"></a>
+<span class="sourceLineNo">279</span>                    }<a name="line.279"></a>
+<span class="sourceLineNo">280</span>                }<a name="line.280"></a>
+<span class="sourceLineNo">281</span>                if (maxCompositeBufferComponents != -1) {<a name="line.281"></a>
+<span class="sourceLineNo">282</span>                    sizeHeader.setMaxCumulationBufferComponents(maxCompositeBufferComponents);<a name="line.282"></a>
+<span class="sourceLineNo">283</span>                }<a name="line.283"></a>
+<span class="sourceLineNo">284</span>                pipeline.addLast("size", sizeHeader);<a name="line.284"></a>
+<span class="sourceLineNo">285</span>                pipeline.addLast("dispatcher", new MessageChannelHandler(NettyTransport.this, logger));<a name="line.285"></a>
+<span class="sourceLineNo">286</span>                return pipeline;<a name="line.286"></a>
+<span class="sourceLineNo">287</span>            }<a name="line.287"></a>
+<span class="sourceLineNo">288</span>        };<a name="line.288"></a>
+<span class="sourceLineNo">289</span>        clientBootstrap.setPipelineFactory(clientPipelineFactory);<a name="line.289"></a>
+<span class="sourceLineNo">290</span>        clientBootstrap.setOption("connectTimeoutMillis", connectTimeout.millis());<a name="line.290"></a>
+<span class="sourceLineNo">291</span>        if (tcpNoDelay != null) {<a name="line.291"></a>
+<span class="sourceLineNo">292</span>            clientBootstrap.setOption("tcpNoDelay", tcpNoDelay);<a name="line.292"></a>
+<span class="sourceLineNo">293</span>        }<a name="line.293"></a>
+<span class="sourceLineNo">294</span>        if (tcpKeepAlive != null) {<a name="line.294"></a>
+<span class="sourceLineNo">295</span>            clientBootstrap.setOption("keepAlive", tcpKeepAlive);<a name="line.295"></a>
+<span class="sourceLineNo">296</span>        }<a name="line.296"></a>
+<span class="sourceLineNo">297</span>        if (tcpSendBufferSize != null &amp;&amp; tcpSendBufferSize.bytes() &gt; 0) {<a name="line.297"></a>
+<span class="sourceLineNo">298</span>            clientBootstrap.setOption("sendBufferSize", tcpSendBufferSize.bytes());<a name="line.298"></a>
+<span class="sourceLineNo">299</span>        }<a name="line.299"></a>
+<span class="sourceLineNo">300</span>        if (tcpReceiveBufferSize != null &amp;&amp; tcpReceiveBufferSize.bytes() &gt; 0) {<a name="line.300"></a>
+<span class="sourceLineNo">301</span>            clientBootstrap.setOption("receiveBufferSize", tcpReceiveBufferSize.bytes());<a name="line.301"></a>
+<span class="sourceLineNo">302</span>        }<a name="line.302"></a>
+<span class="sourceLineNo">303</span>        clientBootstrap.setOption("receiveBufferSizePredictorFactory", receiveBufferSizePredictorFactory);<a name="line.303"></a>
+<span class="sourceLineNo">304</span>        if (reuseAddress != null) {<a name="line.304"></a>
+<span class="sourceLineNo">305</span>            clientBootstrap.setOption("reuseAddress", reuseAddress);<a name="line.305"></a>
+<span class="sourceLineNo">306</span>        }<a name="line.306"></a>
+<span class="sourceLineNo">307</span><a name="line.307"></a>
+<span class="sourceLineNo">308</span>        if (!settings.getAsBoolean("network.server", true)) {<a name="line.308"></a>
+<span class="sourceLineNo">309</span>            return;<a name="line.309"></a>
+<span class="sourceLineNo">310</span>        }<a name="line.310"></a>
+<span class="sourceLineNo">311</span><a name="line.311"></a>
+<span class="sourceLineNo">312</span>        serverOpenChannels = new OpenChannelsHandler(logger);<a name="line.312"></a>
+<span class="sourceLineNo">313</span>        if (blockingServer) {<a name="line.313"></a>
+<span class="sourceLineNo">314</span>            serverBootstrap = new ServerBootstrap(new OioServerSocketChannelFactory(<a name="line.314"></a>
+<span class="sourceLineNo">315</span>                    Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_server_boss")),<a name="line.315"></a>
+<span class="sourceLineNo">316</span>                    Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_server_worker"))));<a name="line.316"></a>
+<span class="sourceLineNo">317</span>        } else {<a name="line.317"></a>
+<span class="sourceLineNo">318</span>            serverBootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(<a name="line.318"></a>
+<span class="sourceLineNo">319</span>                    Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_server_boss")),<a name="line.319"></a>
+<span class="sourceLineNo">320</span>                    Executors.newCachedThreadPool(daemonThreadFactory(settings, "transport_server_worker")),<a name="line.320"></a>
+<span class="sourceLineNo">321</span>                    workerCount));<a name="line.321"></a>
+<span class="sourceLineNo">322</span>        }<a name="line.322"></a>
+<span class="sourceLineNo">323</span>        ChannelPipelineFactory serverPipelineFactory = new ChannelPipelineFactory() {<a name="line.323"></a>
+<span class="sourceLineNo">324</span>            @Override<a name="line.324"></a>
+<span class="sourceLineNo">325</span>            public ChannelPipeline getPipeline() throws Exception {<a name="line.325"></a>
+<span class="sourceLineNo">326</span>                ChannelPipeline pipeline = Channels.pipeline();<a name="line.326"></a>
+<span class="sourceLineNo">327</span>                pipeline.addLast("openChannels", serverOpenChannels);<a name="line.327"></a>
+<span class="sourceLineNo">328</span>                SizeHeaderFrameDecoder sizeHeader = new SizeHeaderFrameDecoder();<a name="line.328"></a>
+<span class="sourceLineNo">329</span>                if (maxCumulationBufferCapacity != null) {<a name="line.329"></a>
+<span class="sourceLineNo">330</span>                    if (maxCumulationBufferCapacity.bytes() &gt; Integer.MAX_VALUE) {<a name="line.330"></a>
+<span class="sourceLineNo">331</span>                        sizeHeader.setMaxCumulationBufferCapacity(Integer.MAX_VALUE);<a name="line.331"></a>
+<span class="sourceLineNo">332</span>                    } else {<a name="line.332"></a>
+<span class="sourceLineNo">333</span>                        sizeHeader.setMaxCumulationBufferCapacity((int) maxCumulationBufferCapacity.bytes());<a name="line.333"></a>
+<span class="sourceLineNo">334</span>                    }<a name="line.334"></a>
+<span class="sourceLineNo">335</span>                }<a name="line.335"></a>
+<span class="sourceLineNo">336</span>                if (maxCompositeBufferComponents != -1) {<a name="line.336"></a>
+<span class="sourceLineNo">337</span>                    sizeHeader.setMaxCumulationBufferComponents(maxCompositeBufferComponents);<a name="line.337"></a>
+<span class="sourceLineNo">338</span>                }<a name="line.338"></a>
+<span class="sourceLineNo">339</span>                pipeline.addLast("size", sizeHeader);<a name="line.339"></a>
+<span class="sourceLineNo">340</span>                pipeline.addLast("dispatcher", new MessageChannelHandler(NettyTransport.this, logger));<a name="line.340"></a>
+<span class="sourceLineNo">341</span>                return pipeline;<a name="line.341"></a>
+<span class="sourceLineNo">342</span>            }<a name="line.342"></a>
+<span class="sourceLineNo">343</span>        };<a name="line.343"></a>
+<span class="sourceLineNo">344</span>        serverBootstrap.setPipelineFactory(serverPipelineFactory);<a name="line.344"></a>
+<span class="sourceLineNo">345</span>        if (tcpNoDelay != null) {<a name="line.345"></a>
+<span class="sourceLineNo">346</span>            serverBootstrap.setOption("child.tcpNoDelay", tcpNoDelay);<a name="line.346"></a>
+<span class="sourceLineNo">347</span>        }<a name="line.347"></a>
+<span class="sourceLineNo">348</span>        if (tcpKeepAlive != null) {<a name="line.348"></a>
+<span class="sourceLineNo">349</span>            serverBootstrap.setOption("child.keepAlive", tcpKeepAlive);<a name="line.349"></a>
+<span class="sourceLineNo">350</span>        }<a name="line.350"></a>
+<span class="sourceLineNo">351</span>        if (tcpSendBufferSize != null &amp;&amp; tcpSendBufferSize.bytes() &gt; 0) {<a name="line.351"></a>
+<span class="sourceLineNo">352</span>            serverBootstrap.setOption("child.sendBufferSize", tcpSendBufferSize.bytes());<a name="line.352"></a>
+<span class="sourceLineNo">353</span>        }<a name="line.353"></a>
+<span class="sourceLineNo">354</span>        if (tcpReceiveBufferSize != null &amp;&amp; tcpReceiveBufferSize.bytes() &gt; 0) {<a name="line.354"></a>
+<span class="sourceLineNo">355</span>            serverBootstrap.setOption("child.receiveBufferSize", tcpReceiveBufferSize.bytes());<a name="line.355"></a>
+<span class="sourceLineNo">356</span>        }<a name="line.356"></a>
+<span class="sourceLineNo">357</span>        serverBootstrap.setOption("receiveBufferSizePredictorFactory", receiveBufferSizePredictorFactory);<a name="line.357"></a>
+<span class="sourceLineNo">358</span>        serverBootstrap.setOption("child.receiveBufferSizePredictorFactory", receiveBufferSizePredictorFactory);<a name="line.358"></a>
+<span class="sourceLineNo">359</span>        if (reuseAddress != null) {<a name="line.359"></a>
+<span class="sourceLineNo">360</span>            serverBootstrap.setOption("reuseAddress", reuseAddress);<a name="line.360"></a>
+<span class="sourceLineNo">361</span>            serverBootstrap.setOption("child.reuseAddress", reuseAddress);<a name="line.361"></a>
+<span class="sourceLineNo">362</span>        }<a name="line.362"></a>
+<span class="sourceLineNo">363</span><a name="line.363"></a>
+<span class="sourceLineNo">364</span>        // Bind and start to accept incoming connections.<a name="line.364"></a>
+<span class="sourceLineNo">365</span>        InetAddress hostAddressX;<a name="line.365"></a>
+<span class="sourceLineNo">366</span>        try {<a name="line.366"></a>
+<span class="sourceLineNo">367</span>            hostAddressX = networkService.resolveBindHostAddress(bindHost);<a name="line.367"></a>
+<span class="sourceLineNo">368</span>        } catch (IOException e) {<a name="line.368"></a>
+<span class="sourceLineNo">369</span>            throw new BindTransportException("Failed to resolve host [" + bindHost + "]", e);<a name="line.369"></a>
+<span class="sourceLineNo">370</span>        }<a name="line.370"></a>
+<span class="sourceLineNo">371</span>        final InetAddress hostAddress = hostAddressX;<a name="line.371"></a>
+<span class="sourceLineNo">372</span><a name="line.372"></a>
+<span class="sourceLineNo">373</span>        PortsRange portsRange = new PortsRange(port);<a name="line.373"></a>
+<span class="sourceLineNo">374</span>        final AtomicReference&lt;Exception&gt; lastException = new AtomicReference();<a name="line.374"></a>
+<span class="sourceLineNo">375</span>        boolean success = portsRange.iterate(new PortsRange.PortCallback() {<a name="line.375"></a>
+<span class="sourceLineNo">376</span>            @Override<a name="line.376"></a>
+<span class="sourceLineNo">377</span>            public boolean onPortNumber(int portNumber) {<a name="line.377"></a>
+<span class="sourceLineNo">378</span>                try {<a name="line.378"></a>
+<span class="sourceLineNo">379</span>                    serverChannel = serverBootstrap.bind(new InetSocketAddress(hostAddress, portNumber));<a name="line.379"></a>
+<span class="sourceLineNo">380</span>                } catch (Exception e) {<a name="line.380"></a>
+<span class="sourceLineNo">381</span>                    lastException.set(e);<a name="line.381"></a>
+<span class="sourceLineNo">382</span>                    return false;<a name="line.382"></a>
+<span class="sourceLineNo">383</span>                }<a name="line.383"></a>
+<span class="sourceLineNo">384</span>                return true;<a name="line.384"></a>
+<span class="sourceLineNo">385</span>            }<a name="line.385"></a>
+<span class="sourceLineNo">386</span>        });<a name="line.386"></a>
+<span class="sourceLineNo">387</span>        if (!success) {<a name="line.387"></a>
+<span class="sourceLineNo">388</span>            throw new BindTransportException("Failed to bind to [" + port + "]", lastException.get());<a name="line.388"></a>
+<span class="sourceLineNo">389</span>        }<a name="line.389"></a>
+<span class="sourceLineNo">390</span><a name="line.390"></a>
+<span class="sourceLineNo">391</span>        logger.debug("Bound to address [{}]", serverChannel.getLocalAddress());<a name="line.391"></a>
+<span class="sourceLineNo">392</span><a name="line.392"></a>
+<span class="sourceLineNo">393</span>        InetSocketAddress boundAddress = (InetSocketAddress) serverChannel.getLocalAddress();<a name="line.393"></a>
+<span class="sourceLineNo">394</span>        InetSocketAddress publishAddress;<a name="line.394"></a>
+<span class="sourceLineNo">395</span>        try {<a name="line.395"></a>
+<span class="sourceLineNo">396</span>            publishAddress = new InetSocketAddress(networkService.resolvePublishHostAddress(publishHost), boundAddress.getPort());<a name="line.396"></a>
+<span class="sourceLineNo">397</span>        } catch (Exception e) {<a name="line.397"></a>
+<span class="sourceLineNo">398</span>            throw new BindTransportException("Failed to resolve publish address", e);<a name="line.398"></a>
+<span class="sourceLineNo">399</span>        }<a name="line.399"></a>
+<span class="sourceLineNo">400</span>        this.boundAddress = new BoundTransportAddress(new InetSocketTransportAddress(boundAddress), new InetSocketTransportAddress(publishAddress));<a name="line.400"></a>
+<span class="sourceLineNo">401</span>    }<a name="line.401"></a>
+<span class="sourceLineNo">402</span><a name="line.402"></a>
+<span class="sourceLineNo">403</span>    @Override<a name="line.403"></a>
+<span class="sourceLineNo">404</span>    protected void doStop() throws ElasticsearchException {<a name="line.404"></a>
+<span class="sourceLineNo">405</span>        final CountDownLatch latch = new CountDownLatch(1);<a name="line.405"></a>
+<span class="sourceLineNo">406</span>        // make sure we run it on another thread than a possible IO handler thread<a name="line.406"></a>
+<span class="sourceLineNo">407</span>        threadPool.generic().execute(new Runnable() {<a name="line.407"></a>
+<span class="sourceLineNo">408</span>            @Override<a name="line.408"></a>
+<span class="sourceLineNo">409</span>            public void run() {<a name="line.409"></a>
+<span class="sourceLineNo">410</span>                try {<a name="line.410"></a>
+<span class="sourceLineNo">411</span>                    for (Iterator&lt;NodeChannels&gt; it = connectedNodes.values().iterator(); it.hasNext(); ) {<a name="line.411"></a>
+<span class="sourceLineNo">412</span>                        NodeChannels nodeChannels = it.next();<a name="line.412"></a>
+<span class="sourceLineNo">413</span>                        it.remove();<a name="line.413"></a>
+<span class="sourceLineNo">414</span>                        nodeChannels.close();<a name="line.414"></a>
+<span class="sourceLineNo">415</span>                    }<a name="line.415"></a>
+<span class="sourceLineNo">416</span><a name="line.416"></a>
+<span class="sourceLineNo">417</span>                    if (serverChannel != null) {<a name="line.417"></a>
+<span class="sourceLineNo">418</span>                        try {<a name="line.418"></a>
+<span class="sourceLineNo">419</span>                            serverChannel.close().awaitUninterruptibly();<a name="line.419"></a>
+<span class="sourceLineNo">420</span>                        } finally {<a name="line.420"></a>
+<span class="sourceLineNo">421</span>                            serverChannel = null;<a name="line.421"></a>
+<span class="sourceLineNo">422</span>                        }<a name="line.422"></a>
+<span class="sourceLineNo">423</span>                    }<a name="line.423"></a>
+<span class="sourceLineNo">424</span><a name="line.424"></a>
+<span class="sourceLineNo">425</span>                    if (serverOpenChannels != null) {<a name="line.425"></a>
+<span class="sourceLineNo">426</span>                        serverOpenChannels.close();<a name="line.426"></a>
+<span class="sourceLineNo">427</span>                        serverOpenChannels = null;<a name="line.427"></a>
+<span class="sourceLineNo">428</span>                    }<a name="line.428"></a>
+<span class="sourceLineNo">429</span><a name="line.429"></a>
+<span class="sourceLineNo">430</span>                    if (serverBootstrap != null) {<a name="line.430"></a>
+<span class="sourceLineNo">431</span>                        serverBootstrap.releaseExternalResources();<a name="line.431"></a>
+<span class="sourceLineNo">432</span>                        serverBootstrap = null;<a name="line.432"></a>
+<span class="sourceLineNo">433</span>                    }<a name="line.433"></a>
+<span class="sourceLineNo">434</span><a name="line.434"></a>
+<span class="sourceLineNo">435</span>                    for (Iterator&lt;NodeChannels&gt; it = connectedNodes.values().iterator(); it.hasNext(); ) {<a name="line.435"></a>
+<span class="sourceLineNo">436</span>                        NodeChannels nodeChannels = it.next();<a name="line.436"></a>
+<span class="sourceLineNo">437</span>                        it.remove();<a name="line.437"></a>
+<span class="sourceLineNo">438</span>                        nodeChannels.close();<a name="line.438"></a>
+<span class="sourceLineNo">439</span>                    }<a name="line.439"></a>
+<span class="sourceLineNo">440</span><a name="line.440"></a>
+<span class="sourceLineNo">441</span>                    if (clientBootstrap != null) {<a name="line.441"></a>
+<span class="sourceLineNo">442</span>                        clientBootstrap.releaseExternalResources();<a name="line.442"></a>
+<span class="sourceLineNo">443</span>                        clientBootstrap = null;<a name="line.443"></a>
+<span class="sourceLineNo">444</span>                    }<a name="line.444"></a>
+<span class="sourceLineNo">445</span>                } finally {<a name="line.445"></a>
+<span class="sourceLineNo">446</span>                    latch.countDown();<a name="line.446"></a>
+<span class="sourceLineNo">447</span>                }<a name="line.447"></a>
+<span class="sourceLineNo">448</span>            }<a name="line.448"></a>
+<span class="sourceLineNo">449</span>        });<a name="line.449"></a>
+<span class="sourceLineNo">450</span><a name="line.450"></a>
+<span class="sourceLineNo">451</span>        try {<a name="line.451"></a>
+<span class="sourceLineNo">452</span>            latch.await(30, TimeUnit.SECONDS);<a name="line.452"></a>
+<span class="sourceLineNo">453</span>        } catch (InterruptedException e) {<a name="line.453"></a>
+<span class="sourceLineNo">454</span>            // ignore<a name="line.454"></a>
+<span class="sourceLineNo">455</span>        }<a name="line.455"></a>
+<span class="sourceLineNo">456</span>    }<a name="line.456"></a>
+<span class="sourceLineNo">457</span><a name="line.457"></a>
+<span class="sourceLineNo">458</span>    @Override<a name="line.458"></a>
+<span class="sourceLineNo">459</span>    protected void doClose() throws ElasticsearchException {<a name="line.459"></a>
+<span class="sourceLineNo">460</span>    }<a name="line.460"></a>
+<span class="sourceLineNo">461</span><a name="line.461"></a>
+<span class="sourceLineNo">462</span>    @Override<a name="line.462"></a>
+<span class="sourceLineNo">463</span>    public TransportAddress[] addressesFromString(String address) throws Exception {<a name="line.463"></a>
+<span class="sourceLineNo">464</span>        int index = address.indexOf('[');<a name="line.464"></a>
+<span class="sourceLineNo">465</span>        if (index != -1) {<a name="line.465"></a>
+<span class="sourceLineNo">466</span>            String host = address.substring(0, index);<a name="line.466"></a>
+<span class="sourceLineNo">467</span>            Set&lt;String&gt; ports = Strings.commaDelimitedListToSet(address.substring(index + 1, address.indexOf(']')));<a name="line.467"></a>
+<span class="sourceLineNo">468</span>            List&lt;TransportAddress&gt; addresses = Lists.newArrayList();<a name="line.468"></a>
+<span class="sourceLineNo">469</span>            for (String port : ports) {<a name="line.469"></a>
+<span class="sourceLineNo">470</span>                int[] iPorts = new PortsRange(port).ports();<a name="line.470"></a>
+<span class="sourceLineNo">471</span>                for (int iPort : iPorts) {<a name="line.471"></a>
+<span class="sourceLineNo">472</span>                    addresses.add(new InetSocketTransportAddress(host, iPort));<a name="line.472"></a>
+<span class="sourceLineNo">473</span>                }<a name="line.473"></a>
+<span class="sourceLineNo">474</span>            }<a name="line.474"></a>
+<span class="sourceLineNo">475</span>            return addresses.toArray(new TransportAddress[addresses.size()]);<a name="line.475"></a>
+<span class="sourceLineNo">476</span>        } else {<a name="line.476"></a>
+<span class="sourceLineNo">477</span>            index = address.lastIndexOf(':');<a name="line.477"></a>
+<span class="sourceLineNo">478</span>            if (index == -1) {<a name="line.478"></a>
+<span class="sourceLineNo">479</span>                List&lt;TransportAddress&gt; addresses = Lists.newArrayList();<a name="line.479"></a>
+<span class="sourceLineNo">480</span>                int[] iPorts = new PortsRange(this.port).ports();<a name="line.480"></a>
+<span class="sourceLineNo">481</span>                for (int iPort : iPorts) {<a name="line.481"></a>
+<span class="sourceLineNo">482</span>                    addresses.add(new InetSocketTransportAddress(address, iPort));<a name="line.482"></a>
+<span class="sourceLineNo">483</span>                }<a name="line.483"></a>
+<span class="sourceLineNo">484</span>                return addresses.toArray(new TransportAddress[addresses.size()]);<a name="line.484"></a>
+<span class="sourceLineNo">485</span>            } else {<a name="line.485"></a>
+<span class="sourceLineNo">486</span>                String host = address.substring(0, index);<a name="line.486"></a>
+<span class="sourceLineNo">487</span>                int port = Integer.parseInt(address.substring(index + 1));<a name="line.487"></a>
+<span class="sourceLineNo">488</span>                return new TransportAddress[]{new InetSocketTransportAddress(host, port)};<a name="line.488"></a>
+<span class="sourceLineNo">489</span>            }<a name="line.489"></a>
+<span class="sourceLineNo">490</span>        }<a name="line.490"></a>
+<span class="sourceLineNo">491</span>    }<a name="line.491"></a>
+<span class="sourceLineNo">492</span><a name="line.492"></a>
+<span class="sourceLineNo">493</span>    @Override<a name="line.493"></a>
+<span class="sourceLineNo">494</span>    public boolean addressSupported(Class&lt;? extends TransportAddress&gt; address) {<a name="line.494"></a>
+<span class="sourceLineNo">495</span>        return InetSocketTransportAddress.class.equals(address);<a name="line.495"></a>
+<span class="sourceLineNo">496</span>    }<a name="line.496"></a>
+<span class="sourceLineNo">497</span><a name="line.497"></a>
+<span class="sourceLineNo">498</span>    @Override<a name="line.498"></a>
+<span class="sourceLineNo">499</span>    public BoundTransportAddress boundAddress() {<a name="line.499"></a>
+<span class="sourceLineNo">500</span>        return this.boundAddress;<a name="line.500"></a>
+<span class="sourceLineNo">501</span>    }<a name="line.501"></a>
+<span class="sourceLineNo">502</span><a name="line.502"></a>
+<span class="sourceLineNo">503</span>    void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {<a name="line.503"></a>
+<span class="sourceLineNo">504</span>        if (!lifecycle.started()) {<a name="line.504"></a>
+<span class="sourceLineNo">505</span>            // ignore<a name="line.505"></a>
+<span class="sourceLineNo">506</span>        }<a name="line.506"></a>
+<span class="sourceLineNo">507</span>        if (isCloseConnectionException(e.getCause())) {<a name="line.507"></a>
+<span class="sourceLineNo">508</span>            // disconnect the node<a name="line.508"></a>
+<span class="sourceLineNo">509</span>            Channel channel = ctx.getChannel();<a name="line.509"></a>
+<span class="sourceLineNo">510</span>            for (Map.Entry&lt;DiscoveryNode, NodeChannels&gt; entry : connectedNodes.entrySet()) {<a name="line.510"></a>
+<span class="sourceLineNo">511</span>                if (entry.getValue().hasChannel(channel)) {<a name="line.511"></a>
+<span class="sourceLineNo">512</span>                    disconnectFromNode(entry.getKey());<a name="line.512"></a>
+<span class="sourceLineNo">513</span>                }<a name="line.513"></a>
+<span class="sourceLineNo">514</span>            }<a name="line.514"></a>
+<span class="sourceLineNo">515</span>        } else if (isConnectException(e.getCause())) {<a name="line.515"></a>
+<span class="sourceLineNo">516</span>            if (logger.isTraceEnabled()) {<a name="line.516"></a>
+<span class="sourceLineNo">517</span>                logger.trace("(Ignoring) Exception caught on netty layer [" + ctx.getChannel() + "]", e.getCause());<a name="line.517"></a>
+<span class="sourceLineNo">518</span>            }<a name="line.518"></a>
+<span class="sourceLineNo">519</span>        } else {<a name="line.519"></a>
+<span class="sourceLineNo">520</span>            logger.warn("Exception caught on netty layer [" + ctx.getChannel() + "]", e.getCause());<a name="line.520"></a>
+<span class="sourceLineNo">521</span>        }<a name="line.521"></a>
+<span class="sourceLineNo">522</span>    }<a name="line.522"></a>
+<span class="sourceLineNo">523</span><a name="line.523"></a>
+<span class="sourceLineNo">524</span>    TransportAddress wrapAddress(SocketAddress socketAddress) {<a name="line.524"></a>
+<span class="sourceLineNo">525</span>        return new InetSocketTransportAddress((InetSocketAddress) socketAddress);<a name="line.525"></a>
+<span class="sourceLineNo">526</span>    }<a name="line.526"></a>
+<span class="sourceLineNo">527</span><a name="line.527"></a>
+<span class="sourceLineNo">528</span>    @Override<a name="line.528"></a>
+<span class="sourceLineNo">529</span>    public long serverOpen() {<a name="line.529"></a>
+<span class="sourceLineNo">530</span>        OpenChannelsHandler channels = serverOpenChannels;<a name="line.530"></a>
+<span class="sourceLineNo">531</span>        return channels == null ? 0 : channels.numberOfOpenChannels();<a name="line.531"></a>
+<span class="sourceLineNo">532</span>    }<a name="line.532"></a>
+<span class="sourceLineNo">533</span><a name="line.533"></a>
+<span class="sourceLineNo">534</span>    @Override<a name="line.534"></a>
+<span class="sourceLineNo">535</span>    public void sendRequest(final DiscoveryNode node, final long requestId, final String action, final TransportRequest request, TransportRequestOptions options) throws IOException, TransportException {<a name="line.535"></a>
+<span class="sourceLineNo">536</span>        Channel targetChannel = nodeChannel(node, options);<a name="line.536"></a>
+<span class="sourceLineNo">537</span><a name="line.537"></a>
+<span class="sourceLineNo">538</span>        if (compress) {<a name="line.538"></a>
+<span class="sourceLineNo">539</span>            options.withCompress(true);<a name="line.539"></a>
+<span class="sourceLineNo">540</span>        }<a name="line.540"></a>
+<span class="sourceLineNo">541</span><a name="line.541"></a>
+<span class="sourceLineNo">542</span>        byte status = 0;<a name="line.542"></a>
+<span class="sourceLineNo">543</span>        status = TransportStatus.setRequest(status);<a name="line.543"></a>
+<span class="sourceLineNo">544</span><a name="line.544"></a>
+<span class="sourceLineNo">545</span>        BytesStreamOutput bStream = new BytesStreamOutput();<a name="line.545"></a>
+<span class="sourceLineNo">546</span>        bStream.skip(NettyHeader.HEADER_SIZE);<a name="line.546"></a>
+<span class="sourceLineNo">547</span>        StreamOutput stream = bStream;<a name="line.547"></a>
+<span class="sourceLineNo">548</span>        stream = new HandlesStreamOutput(stream);<a name="line.548"></a>
+<span class="sourceLineNo">549</span><a name="line.549"></a>
+<span class="sourceLineNo">550</span>        // we pick the smallest of the 2, to support both backward and forward compatibility<a name="line.550"></a>
+<span class="sourceLineNo">551</span>        // note, this is the only place we need to do this, since from here on, we use the serialized version<a name="line.551"></a>
+<span class="sourceLineNo">552</span>        // as the version to use also when the node receiving this request will send the response with<a name="line.552"></a>
+<span class="sourceLineNo">553</span>        Version version = Version.smallest(this.version, node.version());<a name="line.553"></a>
+<span class="sourceLineNo">554</span><a name="line.554"></a>
+<span class="sourceLineNo">555</span>        stream.setVersion(version);<a name="line.555"></a>
+<span class="sourceLineNo">556</span>        stream.writeString(action);<a name="line.556"></a>
+<span class="sourceLineNo">557</span><a name="line.557"></a>
+<span class="sourceLineNo">558</span>        ChannelBuffer buffer;<a name="line.558"></a>
+<span class="sourceLineNo">559</span>        request.writeTo(stream);<a name="line.559"></a>
+<span class="sourceLineNo">560</span>        stream.close();<a name="line.560"></a>
+<span class="sourceLineNo">561</span>        buffer = bStream.ourBytes().toChannelBuffer();<a name="line.561"></a>
+<span class="sourceLineNo">562</span>        NettyHeader.writeHeader(buffer, requestId, status, version);<a name="line.562"></a>
+<span class="sourceLineNo">563</span>        targetChannel.write(buffer);<a name="line.563"></a>
+<span class="sourceLineNo">564</span>    }<a name="line.564"></a>
+<span class="sourceLineNo">565</span><a name="line.565"></a>
+<span class="sourceLineNo">566</span>    @Override<a name="line.566"></a>
+<span class="sourceLineNo">567</span>    public boolean nodeConnected(DiscoveryNode node) {<a name="line.567"></a>
+<span class="sourceLineNo">568</span>        return connectedNodes.containsKey(node);<a name="line.568"></a>
+<span class="sourceLineNo">569</span>    }<a name="line.569"></a>
+<span class="sourceLineNo">570</span><a name="line.570"></a>
+<span class="sourceLineNo">571</span>    @Override<a name="line.571"></a>
+<span class="sourceLineNo">572</span>    public void connectToNodeLight(DiscoveryNode node) throws ConnectTransportException {<a name="line.572"></a>
+<span class="sourceLineNo">573</span>        connectToNode(node, true);<a name="line.573"></a>
+<span class="sourceLineNo">574</span>    }<a name="line.574"></a>
+<span class="sourceLineNo">575</span><a name="line.575"></a>
+<span class="sourceLineNo">576</span>    @Override<a name="line.576"></a>
+<span class="sourceLineNo">577</span>    public void connectToNode(DiscoveryNode node) {<a name="line.577"></a>
+<span class="sourceLineNo">578</span>        connectToNode(node, false);<a name="line.578"></a>
+<span class="sourceLineNo">579</span>    }<a name="line.579"></a>
+<span class="sourceLineNo">580</span><a name="line.580"></a>
+<span class="sourceLineNo">581</span>    public void connectToNode(DiscoveryNode node, boolean light) {<a name="line.581"></a>
+<span class="sourceLineNo">582</span>        if (!lifecycle.started()) {<a name="line.582"></a>
+<span class="sourceLineNo">583</span>            throw new ElasticsearchIllegalStateException("can't add nodes to a stopped transport");<a name="line.583"></a>
+<span class="sourceLineNo">584</span>        }<a name="line.584"></a>
+<span class="sourceLineNo">585</span>        if (node == null) {<a name="line.585"></a>
+<span class="sourceLineNo">586</span>            throw new ConnectTransportException(null, "can't connect to a null node");<a name="line.586"></a>
+<span class="sourceLineNo">587</span>        }<a name="line.587"></a>
+<span class="sourceLineNo">588</span>        globalLock.readLock().lock();<a name="line.588"></a>
+<span class="sourceLineNo">589</span>        try {<a name="line.589"></a>
+<span class="sourceLineNo">590</span>            if (!lifecycle.started()) {<a name="line.590"></a>
+<span class="sourceLineNo">591</span>                throw new ElasticsearchIllegalStateException("can't add nodes to a stopped transport");<a name="line.591"></a>
+<span class="sourceLineNo">592</span>            }<a name="line.592"></a>
+<span class="sourceLineNo">593</span>            NodeChannels nodeChannels = connectedNodes.get(node);<a name="line.593"></a>
+<span class="sourceLineNo">594</span>            if (nodeChannels != null) {<a name="line.594"></a>
+<span class="sourceLineNo">595</span>                return;<a name="line.595"></a>
+<span class="sourceLineNo">596</span>            }<a name="line.596"></a>
+<span class="sourceLineNo">597</span>            connectionLock.acquire(node.id());<a name="line.597"></a>
+<span class="sourceLineNo">598</span>            try {<a name="line.598"></a>
+<span class="sourceLineNo">599</span>                if (!lifecycle.started()) {<a name="line.599"></a>
+<span class="sourceLineNo">600</span>                    throw new ElasticsearchIllegalStateException("can't add nodes to a stopped transport");<a name="line.600"></a>
+<span class="sourceLineNo">601</span>                }<a name="line.601"></a>
+<span class="sourceLineNo">602</span>                try {<a name="line.602"></a>
+<span class="sourceLineNo">603</span><a name="line.603"></a>
+<span class="sourceLineNo">604</span><a name="line.604"></a>
+<span class="sourceLineNo">605</span>                    if (light) {<a name="line.605"></a>
+<span class="sourceLineNo">606</span>                        nodeChannels = connectToChannelsLight(node);<a name="line.606"></a>
+<span class="sourceLineNo">607</span>                    } else {<a name="line.607"></a>
+<span class="sourceLineNo">608</span>                        nodeChannels = new NodeChannels(new Channel[connectionsPerNodeRecovery], new Channel[connectionsPerNodeBulk], new Channel[connectionsPerNodeReg], new Channel[connectionsPerNodeState], new Channel[connectionsPerNodePing]);<a name="line.608"></a>
+<span class="sourceLineNo">609</span>                        try {<a name="line.609"></a>
+<span class="sourceLineNo">610</span>                            connectToChannels(nodeChannels, node);<a name="line.610"></a>
+<span class="sourceLineNo">611</span>                        } catch (Exception e) {<a name="line.611"></a>
+<span class="sourceLineNo">612</span>                            nodeChannels.close();<a name="line.612"></a>
+<span class="sourceLineNo">613</span>                            throw e;<a name="line.613"></a>
+<span class="sourceLineNo">614</span>                        }<a name="line.614"></a>
+<span class="sourceLineNo">615</span>                    }<a name="line.615"></a>
+<span class="sourceLineNo">616</span><a name="line.616"></a>
+<span class="sourceLineNo">617</span>                    NodeChannels existing = connectedNodes.putIfAbsent(node, nodeChannels);<a name="line.617"></a>
+<span class="sourceLineNo">618</span>                    if (existing != null) {<a name="line.618"></a>
+<span class="sourceLineNo">619</span>                        // we are already connected to a node, close this ones<a name="line.619"></a>
+<span class="sourceLineNo">620</span>                        nodeChannels.close();<a name="line.620"></a>
+<span class="sourceLineNo">621</span>                    } else {<a name="line.621"></a>
+<span class="sourceLineNo">622</span>                        if (logger.isDebugEnabled()) {<a name="line.622"></a>
+<span class="sourceLineNo">623</span>                            logger.debug("connected to node [{}]", node);<a name="line.623"></a>
+<span class="sourceLineNo">624</span>                        }<a name="line.624"></a>
+<span class="sourceLineNo">625</span>                        transportServiceAdapter.raiseNodeConnected(node);<a name="line.625"></a>
+<span class="sourceLineNo">626</span>                    }<a name="line.626"></a>
+<span class="sourceLineNo">627</span><a name="line.627"></a>
+<span class="sourceLineNo">628</span>                } catch (ConnectTransportException e) {<a name="line.628"></a>
+<span class="sourceLineNo">629</span>                    throw e;<a name="line.629"></a>
+<span class="sourceLineNo">630</span>                } catch (Exception e) {<a name="line.630"></a>
+<span class="sourceLineNo">631</span>                    throw new ConnectTransportException(node, "General node connection failure", e);<a name="line.631"></a>
+<span class="sourceLineNo">632</span>                }<a name="line.632"></a>
+<span class="sourceLineNo">633</span>            } finally {<a name="line.633"></a>
+<span class="sourceLineNo">634</span>                connectionLock.release(node.id());<a name="line.634"></a>
+<span class="sourceLineNo">635</span>            }<a name="line.635"></a>
+<span class="sourceLineNo">636</span>        } finally {<a name="line.636"></a>
+<span class="sourceLineNo">637</span>            globalLock.readLock().unlock();<a name="line.637"></a>
+<span class="sourceLineNo">638</span>        }<a name="line.638"></a>
+<span class="sourceLineNo">639</span>    }<a name="line.639"></a>
+<span class="sourceLineNo">640</span><a name="line.640"></a>
+<span class="sourceLineNo">641</span>    private NodeChannels connectToChannelsLight(DiscoveryNode node) {<a name="line.641"></a>
+<span class="sourceLineNo">642</span>        InetSocketAddress address = ((InetSocketTransportAddress) node.address()).address();<a name="line.642"></a>
+<span class="sourceLineNo">643</span>        ChannelFuture connect = clientBootstrap.connect(address);<a name="line.643"></a>
+<span class="sourceLineNo">644</span>        connect.awaitUninterruptibly((long) (connectTimeout.millis() * 1.5));<a name="line.644"></a>
+<span class="sourceLineNo">645</span>        if (!connect.isSuccess()) {<a name="line.645"></a>
+<span class="sourceLineNo">646</span>            throw new ConnectTransportException(node, "connect_timeout[" + connectTimeout + "]", connect.getCause());<a name="line.646"></a>
+<span class="sourceLineNo">647</span>        }<a name="line.647"></a>
+<span class="sourceLineNo">648</span>        Channel[] channels = new Channel[1];<a name="line.648"></a>
+<span class="sourceLineNo">649</span>        channels[0] = connect.getChannel();<a name="line.649"></a>
+<span class="sourceLineNo">650</span>        channels[0].getCloseFuture().addListener(new ChannelCloseListener(node));<a name="line.650"></a>
+<span class="sourceLineNo">651</span>        return new NodeChannels(channels, channels, channels, channels, channels);<a name="line.651"></a>
+<span class="sourceLineNo">652</span>    }<a name="line.652"></a>
+<span class="sourceLineNo">653</span><a name="line.653"></a>
+<span class="sourceLineNo">654</span>    private void connectToChannels(NodeChannels nodeChannels, DiscoveryNode node) {<a name="line.654"></a>
+<span class="sourceLineNo">655</span>        ChannelFuture[] connectRecovery = new ChannelFuture[nodeChannels.recovery.length];<a name="line.655"></a>
+<span class="sourceLineNo">656</span>        ChannelFuture[] connectBulk = new ChannelFuture[nodeChannels.bulk.length];<a name="line.656"></a>
+<span class="sourceLineNo">657</span>        ChannelFuture[] connectReg = new ChannelFuture[nodeChannels.reg.length];<a name="line.657"></a>
+<span class="sourceLineNo">658</span>        ChannelFuture[] connectState = new ChannelFuture[nodeChannels.state.length];<a name="line.658"></a>
+<span class="sourceLineNo">659</span>        ChannelFuture[] connectPing = new ChannelFuture[nodeChannels.ping.length];<a name="line.659"></a>
+<span class="sourceLineNo">660</span>        InetSocketAddress address = ((InetSocketTransportAddress) node.address()).address();<a name="line.660"></a>
+<span class="sourceLineNo">661</span>        for (int i = 0; i &lt; connectRecovery.length; i++) {<a name="line.661"></a>
+<span class="sourceLineNo">662</span>            connectRecovery[i] = clientBootstrap.connect(address);<a name="line.662"></a>
+<span class="sourceLineNo">663</span>        }<a name="line.663"></a>
+<span class="sourceLineNo">664</span>        for (int i = 0; i &lt; connectBulk.length; i++) {<a name="line.664"></a>
+<span class="sourceLineNo">665</span>            connectBulk[i] = clientBootstrap.connect(address);<a name="line.665"></a>
+<span class="sourceLineNo">666</span>        }<a name="line.666"></a>
+<span class="sourceLineNo">667</span>        for (int i = 0; i &lt; connectReg.length; i++) {<a name="line.667"></a>
+<span class="sourceLineNo">668</span>            connectReg[i] = clientBootstrap.connect(address);<a name="line.668"></a>
+<span class="sourceLineNo">669</span>        }<a name="line.669"></a>
+<span class="sourceLineNo">670</span>        for (int i = 0; i &lt; connectState.length; i++) {<a name="line.670"></a>
+<span class="sourceLineNo">671</span>            connectState[i] = clientBootstrap.connect(address);<a name="line.671"></a>
+<span class="sourceLineNo">672</span>        }<a name="line.672"></a>
+<span class="sourceLineNo">673</span>        for (int i = 0; i &lt; connectPing.length; i++) {<a name="line.673"></a>
+<span class="sourceLineNo">674</span>            connectPing[i] = clientBootstrap.connect(address);<a name="line.674"></a>
+<span class="sourceLineNo">675</span>        }<a name="line.675"></a>
+<span class="sourceLineNo">676</span><a name="line.676"></a>
+<span class="sourceLineNo">677</span>        try {<a name="line.677"></a>
+<span class="sourceLineNo">678</span>            for (int i = 0; i &lt; connectRecovery.length; i++) {<a name="line.678"></a>
+<span class="sourceLineNo">679</span>                connectRecovery[i].awaitUninterruptibly((long) (connectTimeout.millis() * 1.5));<a name="line.679"></a>
+<span class="sourceLineNo">680</span>                if (!connectRecovery[i].isSuccess()) {<a name="line.680"></a>
+<span class="sourceLineNo">681</span>                    throw new ConnectTransportException(node, "connect_timeout[" + connectTimeout + "]", connectRecovery[i].getCause());<a name="line.681"></a>
+<span class="sourceLineNo">682</span>                }<a name="line.682"></a>
+<span class="sourceLineNo">683</span>                nodeChannels.recovery[i] = connectRecovery[i].getChannel();<a name="line.683"></a>
+<span class="sourceLineNo">684</span>                nodeChannels.recovery[i].getCloseFuture().addListener(new ChannelCloseListener(node));<a name="line.684"></a>
+<span class="sourceLineNo">685</span>            }<a name="line.685"></a>
+<span class="sourceLineNo">686</span><a name="line.686"></a>
+<span class="sourceLineNo">687</span>            for (int i = 0; i &lt; connectBulk.length; i++) {<a name="line.687"></a>
+<span class="sourceLineNo">688</span>                connectBulk[i].awaitUninterruptibly((long) (connectTimeout.millis() * 1.5));<a name="line.688"></a>
+<span class="sourceLineNo">689</span>                if (!connectBulk[i].isSuccess()) {<a name="line.689"></a>
+<span class="sourceLineNo">690</span>                    throw new ConnectTransportException(node, "connect_timeout[" + connectTimeout + "]", connectBulk[i].getCause());<a name="line.690"></a>
+<span class="sourceLineNo">691</span>                }<a name="line.691"></a>
+<span class="sourceLineNo">692</span>                nodeChannels.bulk[i] = connectBulk[i].getChannel();<a name="line.692"></a>
+<span class="sourceLineNo">693</span>                nodeChannels.bulk[i].getCloseFuture().addListener(new ChannelCloseListener(node));<a name="line.693"></a>
+<span class="sourceLineNo">694</span>            }<a name="line.694"></a>
+<span class="sourceLineNo">695</span><a name="line.695"></a>
+<span class="sourceLineNo">696</span>            for (int i = 0; i &lt; connectReg.length; i++) {<a name="line.696"></a>
+<span class="sourceLineNo">697</span>                connectReg[i].awaitUninterruptibly((long) (connectTimeout.millis() * 1.5));<a name="line.697"></a>
+<span class="sourceLineNo">698</span>                if (!connectReg[i].isSuccess()) {<a name="line.698"></a>
+<span class="sourceLineNo">699</span>                    throw new ConnectTransportException(node, "connect_timeout[" + connectTimeout + "]", connectReg[i].getCause());<a name="line.699"></a>
+<span class="sourceLineNo">700</span>                }<a name="line.700"></a>
+<span class="sourceLineNo">701</span>                nodeChannels.reg[i] = connectReg[i].getChannel();<a name="line.701"></a>
+<span class="sourceLineNo">702</span>                nodeChannels.reg[i].getCloseFuture().addListener(new ChannelCloseListener(node));<a name="line.702"></a>
+<span class="sourceLineNo">703</span>            }<a name="line.703"></a>
+<span class="sourceLineNo">704</span><a name="line.704"></a>
+<span class="sourceLineNo">705</span>            for (int i = 0; i &lt; connectState.length; i++) {<a name="line.705"></a>
+<span class="sourceLineNo">706</span>                connectState[i].awaitUninterruptibly((long) (connectTimeout.millis() * 1.5));<a name="line.706"></a>
+<span class="sourceLineNo">707</span>                if (!connectState[i].isSuccess()) {<a name="line.707"></a>
+<span class="sourceLineNo">708</span>                    throw new ConnectTransportException(node, "connect_timeout[" + connectTimeout + "]", connectState[i].getCause());<a name="line.708"></a>
+<span class="sourceLineNo">709</span>                }<a name="line.709"></a>
+<span class="sourceLineNo">710</span>                nodeChannels.state[i] = connectState[i].getChannel();<a name="line.710"></a>
+<span class="sourceLineNo">711</span>                nodeChannels.state[i].getCloseFuture().addListener(new ChannelCloseListener(node));<a name="line.711"></a>
+<span class="sourceLineNo">712</span>            }<a name="line.712"></a>
+<span class="sourceLineNo">713</span><a name="line.713"></a>
+<span class="sourceLineNo">714</span>            for (int i = 0; i &lt; connectPing.length; i++) {<a name="line.714"></a>
+<span class="sourceLineNo">715</span>                connectPing[i].awaitUninterruptibly((long) (connectTimeout.millis() * 1.5));<a name="line.715"></a>
+<span class="sourceLineNo">716</span>                if (!connectPing[i].isSuccess()) {<a name="line.716"></a>
+<span class="sourceLineNo">717</span>                    throw new ConnectTransportException(node, "connect_timeout[" + connectTimeout + "]", connectPing[i].getCause());<a name="line.717"></a>
+<span class="sourceLineNo">718</span>                }<a name="line.718"></a>
+<span class="sourceLineNo">719</span>                nodeChannels.ping[i] = connectPing[i].getChannel();<a name="line.719"></a>
+<span class="sourceLineNo">720</span>                nodeChannels.ping[i].getCloseFuture().addListener(new ChannelCloseListener(node));<a name="line.720"></a>
+<span class="sourceLineNo">721</span>            }<a name="line.721"></a>
+<span class="sourceLineNo">722</span><a name="line.722"></a>
+<span class="sourceLineNo">723</span>            if (nodeChannels.recovery.length == 0) {<a name="line.723"></a>
+<span class="sourceLineNo">724</span>                if (nodeChannels.bulk.length &gt; 0) {<a name="line.724"></a>
+<span class="sourceLineNo">725</span>                    nodeChannels.recovery = nodeChannels.bulk;<a name="line.725"></a>
+<span class="sourceLineNo">726</span>                } else {<a name="line.726"></a>
+<span class="sourceLineNo">727</span>                    nodeChannels.recovery = nodeChannels.reg;<a name="line.727"></a>
+<span class="sourceLineNo">728</span>                }<a name="line.728"></a>
+<span class="sourceLineNo">729</span>            }<a name="line.729"></a>
+<span class="sourceLineNo">730</span>            if (nodeChannels.bulk.length == 0) {<a name="line.730"></a>
+<span class="sourceLineNo">731</span>                nodeChannels.bulk = nodeChannels.reg;<a name="line.731"></a>
+<span class="sourceLineNo">732</span>            }<a name="line.732"></a>
+<span class="sourceLineNo">733</span>        } catch (RuntimeException e) {<a name="line.733"></a>
+<span class="sourceLineNo">734</span>            // clean the futures<a name="line.734"></a>
+<span class="sourceLineNo">735</span>            for (ChannelFuture future : ImmutableList.&lt;ChannelFuture&gt;builder().add(connectRecovery).add(connectBulk).add(connectReg).add(connectState).add(connectPing).build()) {<a name="line.735"></a>
+<span class="sourceLineNo">736</span>                future.cancel();<a name="line.736"></a>
+<span class="sourceLineNo">737</span>                if (future.getChannel() != null &amp;&amp; future.getChannel().isOpen()) {<a name="line.737"></a>
+<span class="sourceLineNo">738</span>                    try {<a name="line.738"></a>
+<span class="sourceLineNo">739</span>                        future.getChannel().close();<a name="line.739"></a>
+<span class="sourceLineNo">740</span>                    } catch (Exception e1) {<a name="line.740"></a>
+<span class="sourceLineNo">741</span>                        // ignore<a name="line.741"></a>
+<span class="sourceLineNo">742</span>                    }<a name="line.742"></a>
+<span class="sourceLineNo">743</span>                }<a name="line.743"></a>
+<span class="sourceLineNo">744</span>            }<a name="line.744"></a>
+<span class="sourceLineNo">745</span>            throw e;<a name="line.745"></a>
+<span class="sourceLineNo">746</span>        }<a name="line.746"></a>
+<span class="sourceLineNo">747</span>    }<a name="line.747"></a>
+<span class="sourceLineNo">748</span><a name="line.748"></a>
+<span class="sourceLineNo">749</span>    @Override<a name="line.749"></a>
+<span class="sourceLineNo">750</span>    public void disconnectFromNode(DiscoveryNode node) {<a name="line.750"></a>
+<span class="sourceLineNo">751</span>        NodeChannels nodeChannels = connectedNodes.remove(node);<a name="line.751"></a>
+<span class="sourceLineNo">752</span>        if (nodeChannels != null) {<a name="line.752"></a>
+<span class="sourceLineNo">753</span>            connectionLock.acquire(node.id());<a name="line.753"></a>
+<span class="sourceLineNo">754</span>            try {<a name="line.754"></a>
+<span class="sourceLineNo">755</span>                try {<a name="line.755"></a>
+<span class="sourceLineNo">756</span>                    nodeChannels.close();<a name="line.756"></a>
+<span class="sourceLineNo">757</span>                } finally {<a name="line.757"></a>
+<span class="sourceLineNo">758</span>                    logger.debug("disconnected from [{}]", node);<a name="line.758"></a>
+<span class="sourceLineNo">759</span>                    transportServiceAdapter.raiseNodeDisconnected(node);<a name="line.759"></a>
+<span class="sourceLineNo">760</span>                }<a name="line.760"></a>
+<span class="sourceLineNo">761</span>            } finally {<a name="line.761"></a>
+<span class="sourceLineNo">762</span>                connectionLock.release(node.id());<a name="line.762"></a>
+<span class="sourceLineNo">763</span>            }<a name="line.763"></a>
+<span class="sourceLineNo">764</span>        }<a name="line.764"></a>
+<span class="sourceLineNo">765</span>    }<a name="line.765"></a>
+<span class="sourceLineNo">766</span><a name="line.766"></a>
+<span class="sourceLineNo">767</span>    /**<a name="line.767"></a>
+<span class="sourceLineNo">768</span>     * Disconnects from a node if a channel is found as part of that nodes channels.<a name="line.768"></a>
+<span class="sourceLineNo">769</span>     */<a name="line.769"></a>
+<span class="sourceLineNo">770</span>    private void disconnectFromNodeChannel(Channel channel, Throwable failure) {<a name="line.770"></a>
+<span class="sourceLineNo">771</span>        for (DiscoveryNode node : connectedNodes.keySet()) {<a name="line.771"></a>
+<span class="sourceLineNo">772</span>            NodeChannels nodeChannels = connectedNodes.get(node);<a name="line.772"></a>
+<span class="sourceLineNo">773</span>            if (nodeChannels != null &amp;&amp; nodeChannels.hasChannel(channel)) {<a name="line.773"></a>
+<span class="sourceLineNo">774</span>                connectionLock.acquire(node.id());<a name="line.774"></a>
+<span class="sourceLineNo">775</span>                if (!nodeChannels.hasChannel(channel)) { //might have been removed in the meanwhile, safety check<a name="line.775"></a>
+<span class="sourceLineNo">776</span>                    assert !connectedNodes.containsKey(node);<a name="line.776"></a>
+<span class="sourceLineNo">777</span>                } else {<a name="line.777"></a>
+<span class="sourceLineNo">778</span>                    try {<a name="line.778"></a>
+<span class="sourceLineNo">779</span>                        connectedNodes.remove(node);<a name="line.779"></a>
+<span class="sourceLineNo">780</span>                        try {<a name="line.780"></a>
+<span class="sourceLineNo">781</span>                            nodeChannels.close();<a name="line.781"></a>
+<span class="sourceLineNo">782</span>                        } finally {<a name="line.782"></a>
+<span class="sourceLineNo">783</span>                            logger.debug("disconnected from [{}] on channel failure", failure, node);<a name="line.783"></a>
+<span class="sourceLineNo">784</span>                            transportServiceAdapter.raiseNodeDisconnected(node);<a name="line.784"></a>
+<span class="sourceLineNo">785</span>                        }<a name="line.785"></a>
+<span class="sourceLineNo">786</span>                    } finally {<a name="line.786"></a>
+<span class="sourceLineNo">787</span>                        connectionLock.release(node.id());<a name="line.787"></a>
+<span class="sourceLineNo">788</span>                    }<a name="line.788"></a>
+<span class="sourceLineNo">789</span>                }<a name="line.789"></a>
+<span class="sourceLineNo">790</span>            }<a name="line.790"></a>
+<span class="sourceLineNo">791</span>        }<a name="line.791"></a>
+<span class="sourceLineNo">792</span>    }<a name="line.792"></a>
+<span class="sourceLineNo">793</span><a name="line.793"></a>
+<span class="sourceLineNo">794</span>    private Channel nodeChannel(DiscoveryNode node, TransportRequestOptions options) throws ConnectTransportException {<a name="line.794"></a>
+<span class="sourceLineNo">795</span>        NodeChannels nodeChannels = connectedNodes.get(node);<a name="line.795"></a>
+<span class="sourceLineNo">796</span>        if (nodeChannels == null) {<a name="line.796"></a>
+<span class="sourceLineNo">797</span>            throw new NodeNotConnectedException(node, "Node not connected");<a name="line.797"></a>
+<span class="sourceLineNo">798</span>        }<a name="line.798"></a>
+<span class="sourceLineNo">799</span>        return nodeChannels.channel(options.type());<a name="line.799"></a>
+<span class="sourceLineNo">800</span>    }<a name="line.800"></a>
+<span class="sourceLineNo">801</span><a name="line.801"></a>
+<span class="sourceLineNo">802</span>    private class ChannelCloseListener implements ChannelFutureListener {<a name="line.802"></a>
+<span class="sourceLineNo">803</span><a name="line.803"></a>
+<span class="sourceLineNo">804</span>        private final DiscoveryNode node;<a name="line.804"></a>
+<span class="sourceLineNo">805</span><a name="line.805"></a>
+<span class="sourceLineNo">806</span>        private ChannelCloseListener(DiscoveryNode node) {<a name="line.806"></a>
+<span class="sourceLineNo">807</span>            this.node = node;<a name="line.807"></a>
+<span class="sourceLineNo">808</span>        }<a name="line.808"></a>
+<span class="sourceLineNo">809</span><a name="line.809"></a>
+<span class="sourceLineNo">810</span>        @Override<a name="line.810"></a>
+<span class="sourceLineNo">811</span>        public void operationComplete(ChannelFuture future) throws Exception {<a name="line.811"></a>
+<span class="sourceLineNo">812</span>            disconnectFromNode(node);<a name="line.812"></a>
+<span class="sourceLineNo">813</span>        }<a name="line.813"></a>
+<span class="sourceLineNo">814</span>    }<a name="line.814"></a>
+<span class="sourceLineNo">815</span><a name="line.815"></a>
+<span class="sourceLineNo">816</span>    public static class NodeChannels {<a name="line.816"></a>
+<span class="sourceLineNo">817</span><a name="line.817"></a>
+<span class="sourceLineNo">818</span>        private Channel[] recovery;<a name="line.818"></a>
+<span class="sourceLineNo">819</span>        private final AtomicInteger recoveryCounter = new AtomicInteger();<a name="line.819"></a>
+<span class="sourceLineNo">820</span>        private Channel[] bulk;<a name="line.820"></a>
+<span class="sourceLineNo">821</span>        private final AtomicInteger bulkCounter = new AtomicInteger();<a name="line.821"></a>
+<span class="sourceLineNo">822</span>        private Channel[] reg;<a name="line.822"></a>
+<span class="sourceLineNo">823</span>        private final AtomicInteger regCounter = new AtomicInteger();<a name="line.823"></a>
+<span class="sourceLineNo">824</span>        private Channel[] state;<a name="line.824"></a>
+<span class="sourceLineNo">825</span>        private final AtomicInteger stateCounter = new AtomicInteger();<a name="line.825"></a>
+<span class="sourceLineNo">826</span>        private Channel[] ping;<a name="line.826"></a>
+<span class="sourceLineNo">827</span>        private final AtomicInteger pingCounter = new AtomicInteger();<a name="line.827"></a>
+<span class="sourceLineNo">828</span><a name="line.828"></a>
+<span class="sourceLineNo">829</span>        public NodeChannels(Channel[] recovery, Channel[] bulk, Channel[] reg, Channel[] state, Channel[] ping) {<a name="line.829"></a>
+<span class="sourceLineNo">830</span>            this.recovery = recovery;<a name="line.830"></a>
+<span class="sourceLineNo">831</span>            this.bulk = bulk;<a name="line.831"></a>
+<span class="sourceLineNo">832</span>            this.reg = reg;<a name="line.832"></a>
+<span class="sourceLineNo">833</span>            this.state = state;<a name="line.833"></a>
+<span class="sourceLineNo">834</span>            this.ping = ping;<a name="line.834"></a>
+<span class="sourceLineNo">835</span>        }<a name="line.835"></a>
+<span class="sourceLineNo">836</span><a name="line.836"></a>
+<span class="sourceLineNo">837</span>        public boolean hasChannel(Channel channel) {<a name="line.837"></a>
+<span class="sourceLineNo">838</span>            return hasChannel(channel, recovery) || hasChannel(channel, bulk) || hasChannel(channel, reg) || hasChannel(channel, state) || hasChannel(channel, ping);<a name="line.838"></a>
+<span class="sourceLineNo">839</span>        }<a name="line.839"></a>
+<span class="sourceLineNo">840</span><a name="line.840"></a>
+<span class="sourceLineNo">841</span>        private boolean hasChannel(Channel channel, Channel[] channels) {<a name="line.841"></a>
+<span class="sourceLineNo">842</span>            for (Channel channel1 : channels) {<a name="line.842"></a>
+<span class="sourceLineNo">843</span>                if (channel.equals(channel1)) {<a name="line.843"></a>
+<span class="sourceLineNo">844</span>                    return true;<a name="line.844"></a>
+<span class="sourceLineNo">845</span>                }<a name="line.845"></a>
+<span class="sourceLineNo">846</span>            }<a name="line.846"></a>
+<span class="sourceLineNo">847</span>            return false;<a name="line.847"></a>
+<span class="sourceLineNo">848</span>        }<a name="line.848"></a>
+<span class="sourceLineNo">849</span><a name="line.849"></a>
+<span class="sourceLineNo">850</span>        public Channel channel(TransportRequestOptions.Type type) {<a name="line.850"></a>
+<span class="sourceLineNo">851</span>            if (type == TransportRequestOptions.Type.REG) {<a name="line.851"></a>
+<span class="sourceLineNo">852</span>                return reg[Math.abs(regCounter.incrementAndGet()) % reg.length];<a name="line.852"></a>
+<span class="sourceLineNo">853</span>            } else if (type == TransportRequestOptions.Type.STATE) {<a name="line.853"></a>
+<span class="sourceLineNo">854</span>                return state[Math.abs(stateCounter.incrementAndGet()) % state.length];<a name="line.854"></a>
+<span class="sourceLineNo">855</span>            } else if (type == TransportRequestOptions.Type.PING) {<a name="line.855"></a>
+<span class="sourceLineNo">856</span>                return ping[Math.abs(pingCounter.incrementAndGet()) % ping.length];<a name="line.856"></a>
+<span class="sourceLineNo">857</span>            } else if (type == TransportRequestOptions.Type.BULK) {<a name="line.857"></a>
+<span class="sourceLineNo">858</span>                return bulk[Math.abs(bulkCounter.incrementAndGet()) % bulk.length];<a name="line.858"></a>
+<span class="sourceLineNo">859</span>            } else if (type == TransportRequestOptions.Type.RECOVERY) {<a name="line.859"></a>
+<span class="sourceLineNo">860</span>                return recovery[Math.abs(recoveryCounter.incrementAndGet()) % recovery.length];<a name="line.860"></a>
+<span class="sourceLineNo">861</span>            } else {<a name="line.861"></a>
+<span class="sourceLineNo">862</span>                throw new ElasticsearchIllegalArgumentException("no type channel for [" + type + "]");<a name="line.862"></a>
+<span class="sourceLineNo">863</span>            }<a name="line.863"></a>
+<span class="sourceLineNo">864</span>        }<a name="line.864"></a>
+<span class="sourceLineNo">865</span><a name="line.865"></a>
+<span class="sourceLineNo">866</span>        public synchronized void close() {<a name="line.866"></a>
+<span class="sourceLineNo">867</span>            List&lt;ChannelFuture&gt; futures = new ArrayList&lt;ChannelFuture&gt;();<a name="line.867"></a>
+<span class="sourceLineNo">868</span>            closeChannelsAndWait(recovery, futures);<a name="line.868"></a>
+<span class="sourceLineNo">869</span>            closeChannelsAndWait(bulk, futures);<a name="line.869"></a>
+<span class="sourceLineNo">870</span>            closeChannelsAndWait(reg, futures);<a name="line.870"></a>
+<span class="sourceLineNo">871</span>            closeChannelsAndWait(state, futures);<a name="line.871"></a>
+<span class="sourceLineNo">872</span>            closeChannelsAndWait(ping, futures);<a name="line.872"></a>
+<span class="sourceLineNo">873</span>            for (ChannelFuture future : futures) {<a name="line.873"></a>
+<span class="sourceLineNo">874</span>                future.awaitUninterruptibly();<a name="line.874"></a>
+<span class="sourceLineNo">875</span>            }<a name="line.875"></a>
+<span class="sourceLineNo">876</span>        }<a name="line.876"></a>
+<span class="sourceLineNo">877</span><a name="line.877"></a>
+<span class="sourceLineNo">878</span>        private void closeChannelsAndWait(Channel[] channels, List&lt;ChannelFuture&gt; futures) {<a name="line.878"></a>
+<span class="sourceLineNo">879</span>            for (Channel channel : channels) {<a name="line.879"></a>
+<span class="sourceLineNo">880</span>                try {<a name="line.880"></a>
+<span class="sourceLineNo">881</span>                    if (channel != null &amp;&amp; channel.isOpen()) {<a name="line.881"></a>
+<span class="sourceLineNo">882</span>                        futures.add(channel.close());<a name="line.882"></a>
+<span class="sourceLineNo">883</span>                    }<a name="line.883"></a>
+<span class="sourceLineNo">884</span>                } catch (Exception e) {<a name="line.884"></a>
+<span class="sourceLineNo">885</span>                    //ignore<a name="line.885"></a>
+<span class="sourceLineNo">886</span>                }<a name="line.886"></a>
+<span class="sourceLineNo">887</span>            }<a name="line.887"></a>
+<span class="sourceLineNo">888</span>        }<a name="line.888"></a>
+<span class="sourceLineNo">889</span>    }<a name="line.889"></a>
+<span class="sourceLineNo">890</span><a name="line.890"></a>
+<span class="sourceLineNo">891</span>}<a name="line.891"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>

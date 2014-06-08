@@ -1,126 +1,129 @@
-<HTML>
-<BODY BGCOLOR="white">
-<PRE>
-<FONT color="green">001</FONT>    <a name="line.1"></a>
-<FONT color="green">002</FONT>    package org.xbib.elasticsearch.websocket;<a name="line.2"></a>
-<FONT color="green">003</FONT>    <a name="line.3"></a>
-<FONT color="green">004</FONT>    import java.nio.charset.Charset;<a name="line.4"></a>
-<FONT color="green">005</FONT>    import java.util.HashMap;<a name="line.5"></a>
-<FONT color="green">006</FONT>    import java.util.Map;<a name="line.6"></a>
-<FONT color="green">007</FONT>    <a name="line.7"></a>
-<FONT color="green">008</FONT>    import org.elasticsearch.common.logging.ESLogger;<a name="line.8"></a>
-<FONT color="green">009</FONT>    import org.elasticsearch.common.logging.ESLoggerFactory;<a name="line.9"></a>
-<FONT color="green">010</FONT>    import org.jboss.netty.channel.Channel;<a name="line.10"></a>
-<FONT color="green">011</FONT>    import org.jboss.netty.channel.ChannelHandlerContext;<a name="line.11"></a>
-<FONT color="green">012</FONT>    import org.jboss.netty.handler.codec. http.websocketx.CloseWebSocketFrame;<a name="line.12"></a>
-<FONT color="green">013</FONT>    import org.jboss.netty.handler.codec.http.websocketx.PingWebSocketFrame;<a name="line.13"></a>
-<FONT color="green">014</FONT>    import org.jboss.netty.handler.codec.http.websocketx.PongWebSocketFrame;<a name="line.14"></a>
-<FONT color="green">015</FONT>    import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;<a name="line.15"></a>
-<FONT color="green">016</FONT>    import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;<a name="line.16"></a>
-<FONT color="green">017</FONT>    import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;<a name="line.17"></a>
-<FONT color="green">018</FONT>    <a name="line.18"></a>
-<FONT color="green">019</FONT>    import org.elasticsearch.ElasticsearchException;<a name="line.19"></a>
-<FONT color="green">020</FONT>    import org.elasticsearch.common.component.AbstractLifecycleComponent;<a name="line.20"></a>
-<FONT color="green">021</FONT>    import org.elasticsearch.common.inject.Inject;<a name="line.21"></a>
-<FONT color="green">022</FONT>    import org.elasticsearch.common.settings.Settings;<a name="line.22"></a>
-<FONT color="green">023</FONT>    import org.elasticsearch.common.xcontent.XContentFactory;<a name="line.23"></a>
-<FONT color="green">024</FONT>    import org.elasticsearch.common.xcontent.XContentParser;<a name="line.24"></a>
-<FONT color="green">025</FONT>    import org.xbib.elasticsearch.websocket.http.netty.NettyInteractiveChannel;<a name="line.25"></a>
-<FONT color="green">026</FONT>    import org.xbib.elasticsearch.websocket.http.netty.NettyInteractiveRequest;<a name="line.26"></a>
-<FONT color="green">027</FONT>    <a name="line.27"></a>
-<FONT color="green">028</FONT>    /**<a name="line.28"></a>
-<FONT color="green">029</FONT>     * The InteractiveController controls the presence of websocket connections<a name="line.29"></a>
-<FONT color="green">030</FONT>     * and the flow of websocket frames for interactive use.<a name="line.30"></a>
-<FONT color="green">031</FONT>     */<a name="line.31"></a>
-<FONT color="green">032</FONT>    public class InteractiveController extends AbstractLifecycleComponent&lt;InteractiveController&gt; {<a name="line.32"></a>
-<FONT color="green">033</FONT>    <a name="line.33"></a>
-<FONT color="green">034</FONT>        private final ESLogger logger = ESLoggerFactory.getLogger(InteractiveController.class.getSimpleName());<a name="line.34"></a>
-<FONT color="green">035</FONT>    <a name="line.35"></a>
-<FONT color="green">036</FONT>        private final HashMap&lt;String, InteractiveHandler&gt; handlers = new HashMap();<a name="line.36"></a>
-<FONT color="green">037</FONT>    <a name="line.37"></a>
-<FONT color="green">038</FONT>        @Inject<a name="line.38"></a>
-<FONT color="green">039</FONT>        public InteractiveController(Settings settings) {<a name="line.39"></a>
-<FONT color="green">040</FONT>            super(settings);<a name="line.40"></a>
-<FONT color="green">041</FONT>        }<a name="line.41"></a>
-<FONT color="green">042</FONT>    <a name="line.42"></a>
-<FONT color="green">043</FONT>        @Override<a name="line.43"></a>
-<FONT color="green">044</FONT>        protected void doStart() throws ElasticsearchException {<a name="line.44"></a>
-<FONT color="green">045</FONT>        }<a name="line.45"></a>
-<FONT color="green">046</FONT>    <a name="line.46"></a>
-<FONT color="green">047</FONT>        @Override<a name="line.47"></a>
-<FONT color="green">048</FONT>        protected void doStop() throws ElasticsearchException {<a name="line.48"></a>
-<FONT color="green">049</FONT>        }<a name="line.49"></a>
-<FONT color="green">050</FONT>    <a name="line.50"></a>
-<FONT color="green">051</FONT>        @Override<a name="line.51"></a>
-<FONT color="green">052</FONT>        protected void doClose() throws ElasticsearchException {<a name="line.52"></a>
-<FONT color="green">053</FONT>        }<a name="line.53"></a>
-<FONT color="green">054</FONT>    <a name="line.54"></a>
-<FONT color="green">055</FONT>        public void registerHandler(String type, InteractiveHandler handler) {<a name="line.55"></a>
-<FONT color="green">056</FONT>            handlers.put(type, handler);<a name="line.56"></a>
-<FONT color="green">057</FONT>        }<a name="line.57"></a>
-<FONT color="green">058</FONT>    <a name="line.58"></a>
-<FONT color="green">059</FONT>        public void presence(Presence presence, String topic, Channel channel) {<a name="line.59"></a>
-<FONT color="green">060</FONT>            if (logger.isDebugEnabled()) {<a name="line.60"></a>
-<FONT color="green">061</FONT>                logger.debug("presence: " + presence.name()<a name="line.61"></a>
-<FONT color="green">062</FONT>                        + " topic =" + topic<a name="line.62"></a>
-<FONT color="green">063</FONT>                        + " channel =" + channel);<a name="line.63"></a>
-<FONT color="green">064</FONT>            }<a name="line.64"></a>
-<FONT color="green">065</FONT>        }<a name="line.65"></a>
-<FONT color="green">066</FONT>    <a name="line.66"></a>
-<FONT color="green">067</FONT>        public void frame(WebSocketServerHandshaker handshaker, WebSocketFrame frame, ChannelHandlerContext context) {<a name="line.67"></a>
-<FONT color="green">068</FONT>            Channel channel = context.getChannel();<a name="line.68"></a>
-<FONT color="green">069</FONT>            if (frame instanceof TextWebSocketFrame) {<a name="line.69"></a>
-<FONT color="green">070</FONT>                text((TextWebSocketFrame) frame,channel);<a name="line.70"></a>
-<FONT color="green">071</FONT>            } else if (handshaker != null &amp;&amp; frame instanceof CloseWebSocketFrame) {<a name="line.71"></a>
-<FONT color="green">072</FONT>                handshaker.close(context.getChannel(), (CloseWebSocketFrame) frame);<a name="line.72"></a>
-<FONT color="green">073</FONT>                presence(Presence.DISCONNECTED, null, channel);<a name="line.73"></a>
-<FONT color="green">074</FONT>            } else if (frame instanceof PingWebSocketFrame) {<a name="line.74"></a>
-<FONT color="green">075</FONT>                channel.write(new PongWebSocketFrame(frame.getBinaryData()));<a name="line.75"></a>
-<FONT color="green">076</FONT>            }<a name="line.76"></a>
-<FONT color="green">077</FONT>        }<a name="line.77"></a>
-<FONT color="green">078</FONT>    <a name="line.78"></a>
-<FONT color="green">079</FONT>        private void text(TextWebSocketFrame frame, Channel channel) {<a name="line.79"></a>
-<FONT color="green">080</FONT>            Map&lt;String, Object&gt; map = parse(frame.getBinaryData().toString(Charset.forName("UTF-8")));<a name="line.80"></a>
-<FONT color="green">081</FONT>            if (map == null) {<a name="line.81"></a>
-<FONT color="green">082</FONT>                error("invalid request", channel);<a name="line.82"></a>
-<FONT color="green">083</FONT>                return;<a name="line.83"></a>
-<FONT color="green">084</FONT>            }<a name="line.84"></a>
-<FONT color="green">085</FONT>            String type = (String) map.get("type");<a name="line.85"></a>
-<FONT color="green">086</FONT>            if (type == null) {<a name="line.86"></a>
-<FONT color="green">087</FONT>                error("no type found", channel);<a name="line.87"></a>
-<FONT color="green">088</FONT>                return;<a name="line.88"></a>
-<FONT color="green">089</FONT>            }<a name="line.89"></a>
-<FONT color="green">090</FONT>            if (!handlers.containsKey(type)) {<a name="line.90"></a>
-<FONT color="green">091</FONT>                error("missing handler for type: " + type, channel);<a name="line.91"></a>
-<FONT color="green">092</FONT>                return;<a name="line.92"></a>
-<FONT color="green">093</FONT>            }<a name="line.93"></a>
-<FONT color="green">094</FONT>            Map&lt;String, Object&gt; data = (Map&lt;String, Object&gt;) map.get("data");<a name="line.94"></a>
-<FONT color="green">095</FONT>            handlers.get(type).handleRequest(new NettyInteractiveRequest(data),<a name="line.95"></a>
-<FONT color="green">096</FONT>                    new NettyInteractiveChannel(channel));<a name="line.96"></a>
-<FONT color="green">097</FONT>        }<a name="line.97"></a>
-<FONT color="green">098</FONT>    <a name="line.98"></a>
-<FONT color="green">099</FONT>        private Map&lt;String, Object&gt; parse(String source) {<a name="line.99"></a>
-<FONT color="green">100</FONT>            Map&lt;String, Object&gt; map = null;<a name="line.100"></a>
-<FONT color="green">101</FONT>            XContentParser parser = null;<a name="line.101"></a>
-<FONT color="green">102</FONT>            try {<a name="line.102"></a>
-<FONT color="green">103</FONT>                parser = XContentFactory.xContent(source).createParser(source);<a name="line.103"></a>
-<FONT color="green">104</FONT>                map = parser.map();<a name="line.104"></a>
-<FONT color="green">105</FONT>            } catch (Exception e) {<a name="line.105"></a>
-<FONT color="green">106</FONT>                logger.error("unable to parse: {}", source);<a name="line.106"></a>
-<FONT color="green">107</FONT>            } finally {<a name="line.107"></a>
-<FONT color="green">108</FONT>                if (parser != null) {<a name="line.108"></a>
-<FONT color="green">109</FONT>                    parser.close();<a name="line.109"></a>
-<FONT color="green">110</FONT>                }<a name="line.110"></a>
-<FONT color="green">111</FONT>            }<a name="line.111"></a>
-<FONT color="green">112</FONT>            return map;<a name="line.112"></a>
-<FONT color="green">113</FONT>        }<a name="line.113"></a>
-<FONT color="green">114</FONT>    <a name="line.114"></a>
-<FONT color="green">115</FONT>        private void error(String message, Channel channel) {<a name="line.115"></a>
-<FONT color="green">116</FONT>            String text = "{\"ok\":false,\"error\":\"" + message + "\"}";<a name="line.116"></a>
-<FONT color="green">117</FONT>            TextWebSocketFrame frame = new TextWebSocketFrame(text);<a name="line.117"></a>
-<FONT color="green">118</FONT>            channel.write(frame);<a name="line.118"></a>
-<FONT color="green">119</FONT>        }<a name="line.119"></a>
-<FONT color="green">120</FONT>    }<a name="line.120"></a>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package org.xbib.elasticsearch.websocket;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import org.elasticsearch.ElasticsearchException;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import org.elasticsearch.common.component.AbstractLifecycleComponent;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import org.elasticsearch.common.inject.Inject;<a name="line.5"></a>
+<span class="sourceLineNo">006</span>import org.elasticsearch.common.logging.ESLogger;<a name="line.6"></a>
+<span class="sourceLineNo">007</span>import org.elasticsearch.common.logging.ESLoggerFactory;<a name="line.7"></a>
+<span class="sourceLineNo">008</span>import org.elasticsearch.common.settings.Settings;<a name="line.8"></a>
+<span class="sourceLineNo">009</span>import org.elasticsearch.common.xcontent.XContentFactory;<a name="line.9"></a>
+<span class="sourceLineNo">010</span>import org.elasticsearch.common.xcontent.XContentParser;<a name="line.10"></a>
+<span class="sourceLineNo">011</span>import org.jboss.netty.channel.Channel;<a name="line.11"></a>
+<span class="sourceLineNo">012</span>import org.jboss.netty.channel.ChannelHandlerContext;<a name="line.12"></a>
+<span class="sourceLineNo">013</span>import org.jboss.netty.handler.codec.http.websocketx.CloseWebSocketFrame;<a name="line.13"></a>
+<span class="sourceLineNo">014</span>import org.jboss.netty.handler.codec.http.websocketx.PingWebSocketFrame;<a name="line.14"></a>
+<span class="sourceLineNo">015</span>import org.jboss.netty.handler.codec.http.websocketx.PongWebSocketFrame;<a name="line.15"></a>
+<span class="sourceLineNo">016</span>import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;<a name="line.16"></a>
+<span class="sourceLineNo">017</span>import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;<a name="line.17"></a>
+<span class="sourceLineNo">018</span>import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;<a name="line.18"></a>
+<span class="sourceLineNo">019</span>import org.xbib.elasticsearch.http.netty.NettyInteractiveChannel;<a name="line.19"></a>
+<span class="sourceLineNo">020</span>import org.xbib.elasticsearch.http.netty.NettyInteractiveRequest;<a name="line.20"></a>
+<span class="sourceLineNo">021</span><a name="line.21"></a>
+<span class="sourceLineNo">022</span>import java.nio.charset.Charset;<a name="line.22"></a>
+<span class="sourceLineNo">023</span>import java.util.HashMap;<a name="line.23"></a>
+<span class="sourceLineNo">024</span>import java.util.Map;<a name="line.24"></a>
+<span class="sourceLineNo">025</span><a name="line.25"></a>
+<span class="sourceLineNo">026</span>/**<a name="line.26"></a>
+<span class="sourceLineNo">027</span> * The InteractiveController controls the presence of websocket connections<a name="line.27"></a>
+<span class="sourceLineNo">028</span> * and the flow of websocket frames for interactive use.<a name="line.28"></a>
+<span class="sourceLineNo">029</span> */<a name="line.29"></a>
+<span class="sourceLineNo">030</span>public class InteractiveController extends AbstractLifecycleComponent&lt;InteractiveController&gt; {<a name="line.30"></a>
+<span class="sourceLineNo">031</span><a name="line.31"></a>
+<span class="sourceLineNo">032</span>    private final ESLogger logger = ESLoggerFactory.getLogger(InteractiveController.class.getSimpleName());<a name="line.32"></a>
+<span class="sourceLineNo">033</span><a name="line.33"></a>
+<span class="sourceLineNo">034</span>    private final HashMap&lt;String, InteractiveHandler&gt; handlers = new HashMap();<a name="line.34"></a>
+<span class="sourceLineNo">035</span><a name="line.35"></a>
+<span class="sourceLineNo">036</span>    @Inject<a name="line.36"></a>
+<span class="sourceLineNo">037</span>    public InteractiveController(Settings settings) {<a name="line.37"></a>
+<span class="sourceLineNo">038</span>        super(settings);<a name="line.38"></a>
+<span class="sourceLineNo">039</span>    }<a name="line.39"></a>
+<span class="sourceLineNo">040</span><a name="line.40"></a>
+<span class="sourceLineNo">041</span>    @Override<a name="line.41"></a>
+<span class="sourceLineNo">042</span>    protected void doStart() throws ElasticsearchException {<a name="line.42"></a>
+<span class="sourceLineNo">043</span>    }<a name="line.43"></a>
+<span class="sourceLineNo">044</span><a name="line.44"></a>
+<span class="sourceLineNo">045</span>    @Override<a name="line.45"></a>
+<span class="sourceLineNo">046</span>    protected void doStop() throws ElasticsearchException {<a name="line.46"></a>
+<span class="sourceLineNo">047</span>    }<a name="line.47"></a>
+<span class="sourceLineNo">048</span><a name="line.48"></a>
+<span class="sourceLineNo">049</span>    @Override<a name="line.49"></a>
+<span class="sourceLineNo">050</span>    protected void doClose() throws ElasticsearchException {<a name="line.50"></a>
+<span class="sourceLineNo">051</span>    }<a name="line.51"></a>
+<span class="sourceLineNo">052</span><a name="line.52"></a>
+<span class="sourceLineNo">053</span>    public void registerHandler(String type, InteractiveHandler handler) {<a name="line.53"></a>
+<span class="sourceLineNo">054</span>        handlers.put(type, handler);<a name="line.54"></a>
+<span class="sourceLineNo">055</span>    }<a name="line.55"></a>
+<span class="sourceLineNo">056</span><a name="line.56"></a>
+<span class="sourceLineNo">057</span>    public void presence(Presence presence, String topic, Channel channel) {<a name="line.57"></a>
+<span class="sourceLineNo">058</span>        if (logger.isDebugEnabled()) {<a name="line.58"></a>
+<span class="sourceLineNo">059</span>            logger.debug("presence: " + presence.name()<a name="line.59"></a>
+<span class="sourceLineNo">060</span>                    + " topic =" + topic<a name="line.60"></a>
+<span class="sourceLineNo">061</span>                    + " channel =" + channel);<a name="line.61"></a>
+<span class="sourceLineNo">062</span>        }<a name="line.62"></a>
+<span class="sourceLineNo">063</span>    }<a name="line.63"></a>
+<span class="sourceLineNo">064</span><a name="line.64"></a>
+<span class="sourceLineNo">065</span>    public void frame(WebSocketServerHandshaker handshaker, WebSocketFrame frame, ChannelHandlerContext context) {<a name="line.65"></a>
+<span class="sourceLineNo">066</span>        Channel channel = context.getChannel();<a name="line.66"></a>
+<span class="sourceLineNo">067</span>        if (frame instanceof TextWebSocketFrame) {<a name="line.67"></a>
+<span class="sourceLineNo">068</span>            text((TextWebSocketFrame) frame, channel);<a name="line.68"></a>
+<span class="sourceLineNo">069</span>        } else if (handshaker != null &amp;&amp; frame instanceof CloseWebSocketFrame) {<a name="line.69"></a>
+<span class="sourceLineNo">070</span>            handshaker.close(context.getChannel(), (CloseWebSocketFrame) frame);<a name="line.70"></a>
+<span class="sourceLineNo">071</span>            presence(Presence.DISCONNECTED, null, channel);<a name="line.71"></a>
+<span class="sourceLineNo">072</span>        } else if (frame instanceof PingWebSocketFrame) {<a name="line.72"></a>
+<span class="sourceLineNo">073</span>            channel.write(new PongWebSocketFrame(frame.getBinaryData()));<a name="line.73"></a>
+<span class="sourceLineNo">074</span>        }<a name="line.74"></a>
+<span class="sourceLineNo">075</span>    }<a name="line.75"></a>
+<span class="sourceLineNo">076</span><a name="line.76"></a>
+<span class="sourceLineNo">077</span>    private void text(TextWebSocketFrame frame, Channel channel) {<a name="line.77"></a>
+<span class="sourceLineNo">078</span>        Map&lt;String, Object&gt; map = parse(frame.getBinaryData().toString(Charset.forName("UTF-8")));<a name="line.78"></a>
+<span class="sourceLineNo">079</span>        if (map == null) {<a name="line.79"></a>
+<span class="sourceLineNo">080</span>            error("invalid request", channel);<a name="line.80"></a>
+<span class="sourceLineNo">081</span>            return;<a name="line.81"></a>
+<span class="sourceLineNo">082</span>        }<a name="line.82"></a>
+<span class="sourceLineNo">083</span>        String type = (String) map.get("type");<a name="line.83"></a>
+<span class="sourceLineNo">084</span>        if (type == null) {<a name="line.84"></a>
+<span class="sourceLineNo">085</span>            error("no type found", channel);<a name="line.85"></a>
+<span class="sourceLineNo">086</span>            return;<a name="line.86"></a>
+<span class="sourceLineNo">087</span>        }<a name="line.87"></a>
+<span class="sourceLineNo">088</span>        if (!handlers.containsKey(type)) {<a name="line.88"></a>
+<span class="sourceLineNo">089</span>            error("missing handler for type: " + type, channel);<a name="line.89"></a>
+<span class="sourceLineNo">090</span>            return;<a name="line.90"></a>
+<span class="sourceLineNo">091</span>        }<a name="line.91"></a>
+<span class="sourceLineNo">092</span>        Map&lt;String, Object&gt; data = (Map&lt;String, Object&gt;) map.get("data");<a name="line.92"></a>
+<span class="sourceLineNo">093</span>        handlers.get(type).handleRequest(new NettyInteractiveRequest(data),<a name="line.93"></a>
+<span class="sourceLineNo">094</span>                new NettyInteractiveChannel(channel));<a name="line.94"></a>
+<span class="sourceLineNo">095</span>    }<a name="line.95"></a>
+<span class="sourceLineNo">096</span><a name="line.96"></a>
+<span class="sourceLineNo">097</span>    private Map&lt;String, Object&gt; parse(String source) {<a name="line.97"></a>
+<span class="sourceLineNo">098</span>        Map&lt;String, Object&gt; map = null;<a name="line.98"></a>
+<span class="sourceLineNo">099</span>        XContentParser parser = null;<a name="line.99"></a>
+<span class="sourceLineNo">100</span>        try {<a name="line.100"></a>
+<span class="sourceLineNo">101</span>            parser = XContentFactory.xContent(source).createParser(source);<a name="line.101"></a>
+<span class="sourceLineNo">102</span>            map = parser.map();<a name="line.102"></a>
+<span class="sourceLineNo">103</span>        } catch (Exception e) {<a name="line.103"></a>
+<span class="sourceLineNo">104</span>            logger.error("unable to parse: {}", source);<a name="line.104"></a>
+<span class="sourceLineNo">105</span>        } finally {<a name="line.105"></a>
+<span class="sourceLineNo">106</span>            if (parser != null) {<a name="line.106"></a>
+<span class="sourceLineNo">107</span>                parser.close();<a name="line.107"></a>
+<span class="sourceLineNo">108</span>            }<a name="line.108"></a>
+<span class="sourceLineNo">109</span>        }<a name="line.109"></a>
+<span class="sourceLineNo">110</span>        return map;<a name="line.110"></a>
+<span class="sourceLineNo">111</span>    }<a name="line.111"></a>
+<span class="sourceLineNo">112</span><a name="line.112"></a>
+<span class="sourceLineNo">113</span>    private void error(String message, Channel channel) {<a name="line.113"></a>
+<span class="sourceLineNo">114</span>        String text = "{\"ok\":false,\"error\":\"" + message + "\"}";<a name="line.114"></a>
+<span class="sourceLineNo">115</span>        TextWebSocketFrame frame = new TextWebSocketFrame(text);<a name="line.115"></a>
+<span class="sourceLineNo">116</span>        channel.write(frame);<a name="line.116"></a>
+<span class="sourceLineNo">117</span>    }<a name="line.117"></a>
+<span class="sourceLineNo">118</span>}<a name="line.118"></a>
 
 
 
@@ -181,6 +184,7 @@
 
 
 
-</PRE>
-</BODY>
-</HTML>
+</pre>
+</div>
+</body>
+</html>

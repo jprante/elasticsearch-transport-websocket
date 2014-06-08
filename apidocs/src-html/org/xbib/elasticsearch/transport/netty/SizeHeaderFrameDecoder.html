@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package org.xbib.elasticsearch.transport.netty;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import org.elasticsearch.common.unit.ByteSizeValue;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import org.elasticsearch.monitor.jvm.JvmInfo;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import org.jboss.netty.buffer.ChannelBuffer;<a name="line.5"></a>
+<span class="sourceLineNo">006</span>import org.jboss.netty.channel.Channel;<a name="line.6"></a>
+<span class="sourceLineNo">007</span>import org.jboss.netty.channel.ChannelHandlerContext;<a name="line.7"></a>
+<span class="sourceLineNo">008</span>import org.jboss.netty.handler.codec.frame.FrameDecoder;<a name="line.8"></a>
+<span class="sourceLineNo">009</span>import org.jboss.netty.handler.codec.frame.TooLongFrameException;<a name="line.9"></a>
+<span class="sourceLineNo">010</span><a name="line.10"></a>
+<span class="sourceLineNo">011</span>import java.io.StreamCorruptedException;<a name="line.11"></a>
+<span class="sourceLineNo">012</span><a name="line.12"></a>
+<span class="sourceLineNo">013</span>/**<a name="line.13"></a>
+<span class="sourceLineNo">014</span> */<a name="line.14"></a>
+<span class="sourceLineNo">015</span>public class SizeHeaderFrameDecoder extends FrameDecoder {<a name="line.15"></a>
+<span class="sourceLineNo">016</span><a name="line.16"></a>
+<span class="sourceLineNo">017</span>    private static final long NINETY_PER_HEAP_SIZE = (long) (JvmInfo.jvmInfo().mem().heapMax().bytes() * 0.9);<a name="line.17"></a>
+<span class="sourceLineNo">018</span><a name="line.18"></a>
+<span class="sourceLineNo">019</span>    @Override<a name="line.19"></a>
+<span class="sourceLineNo">020</span>    protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer) throws Exception {<a name="line.20"></a>
+<span class="sourceLineNo">021</span>        if (buffer.readableBytes() &lt; 4) {<a name="line.21"></a>
+<span class="sourceLineNo">022</span>            return null;<a name="line.22"></a>
+<span class="sourceLineNo">023</span>        }<a name="line.23"></a>
+<span class="sourceLineNo">024</span><a name="line.24"></a>
+<span class="sourceLineNo">025</span>        int dataLen = buffer.getInt(buffer.readerIndex());<a name="line.25"></a>
+<span class="sourceLineNo">026</span>        if (dataLen &lt;= 0) {<a name="line.26"></a>
+<span class="sourceLineNo">027</span>            throw new StreamCorruptedException("invalid data length: " + dataLen);<a name="line.27"></a>
+<span class="sourceLineNo">028</span>        }<a name="line.28"></a>
+<span class="sourceLineNo">029</span>        // safety against too large frames being sent<a name="line.29"></a>
+<span class="sourceLineNo">030</span>        if (dataLen &gt; NINETY_PER_HEAP_SIZE) {<a name="line.30"></a>
+<span class="sourceLineNo">031</span>            throw new TooLongFrameException(<a name="line.31"></a>
+<span class="sourceLineNo">032</span>                    "transport content length received [" + new ByteSizeValue(dataLen) + "] exceeded [" + new ByteSizeValue(NINETY_PER_HEAP_SIZE) + "]");<a name="line.32"></a>
+<span class="sourceLineNo">033</span>        }<a name="line.33"></a>
+<span class="sourceLineNo">034</span><a name="line.34"></a>
+<span class="sourceLineNo">035</span>        if (buffer.readableBytes() &lt; dataLen + 4) {<a name="line.35"></a>
+<span class="sourceLineNo">036</span>            return null;<a name="line.36"></a>
+<span class="sourceLineNo">037</span>        }<a name="line.37"></a>
+<span class="sourceLineNo">038</span>        buffer.skipBytes(4);<a name="line.38"></a>
+<span class="sourceLineNo">039</span>        return buffer;<a name="line.39"></a>
+<span class="sourceLineNo">040</span>    }<a name="line.40"></a>
+<span class="sourceLineNo">041</span>}<a name="line.41"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
