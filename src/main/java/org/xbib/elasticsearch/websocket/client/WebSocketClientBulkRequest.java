@@ -1,9 +1,8 @@
-
 package org.xbib.elasticsearch.websocket.client;
 
-import java.io.IOException;
-
 import org.elasticsearch.common.xcontent.XContentBuilder;
+
+import java.io.IOException;
 
 public interface WebSocketClientBulkRequest extends WebSocketClientRequest {
 

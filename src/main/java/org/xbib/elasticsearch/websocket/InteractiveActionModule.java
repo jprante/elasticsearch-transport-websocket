@@ -1,22 +1,19 @@
-
 package org.xbib.elasticsearch.websocket;
-
-import java.util.List;
 
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.xbib.elasticsearch.action.bulk.BulkDeleteAction;
+import org.xbib.elasticsearch.action.bulk.BulkFlushAction;
+import org.xbib.elasticsearch.action.bulk.BulkIndexAction;
+import org.xbib.elasticsearch.action.pubsub.ForwardAction;
+import org.xbib.elasticsearch.action.pubsub.PublishAction;
+import org.xbib.elasticsearch.action.pubsub.SubscribeAction;
+import org.xbib.elasticsearch.action.pubsub.UnsubscribeAction;
 
-import org.xbib.elasticsearch.websocket.action.bulk.BulkDeleteAction;
-import org.xbib.elasticsearch.websocket.action.bulk.BulkFlushAction;
-import org.xbib.elasticsearch.websocket.action.bulk.BulkIndexAction;
-import org.xbib.elasticsearch.websocket.action.pubsub.ForwardAction;
-import org.xbib.elasticsearch.websocket.action.pubsub.PublishAction;
-import org.xbib.elasticsearch.websocket.action.pubsub.SubscribeAction;
-import org.xbib.elasticsearch.websocket.action.pubsub.UnsubscribeAction;
+import java.util.List;
 
 /**
  * The InteractiveActionModule binds all WebSocket actions.
- * 
  */
 public class InteractiveActionModule extends AbstractModule {
 

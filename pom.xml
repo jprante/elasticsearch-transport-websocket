@@ -6,7 +6,7 @@
 
     <groupId>org.xbib.elasticsearch.plugin</groupId>
     <artifactId>elasticsearch-transport-websocket</artifactId>
-    <version>1.1.0.0</version>
+    <version>1.2.1.0</version>
     <packaging>jar</packaging>
 
     <name>elasticsearch-transport-websocket</name>
@@ -41,29 +41,16 @@
 
     <distributionManagement>
         <repository>
-            <id>bintray-jprante-elasticsearch-plugins-elasticsearch-transport-websocket</id>
-            <name>jprante-elasticsearch-plugins-elasticsearch-transport-websocket</name>
-            <url>https://api.bintray.com/maven/jprante/elasticsearch-plugins/elasticsearch-transport-websocket</url>
+            <id>xbib.org</id>
+            <url>scpexe://xbib.org/repository</url>
         </repository>
     </distributionManagement>
-
-    <repositories>
-        <repository>
-            <id>bintray-elasticsearch-plugins</id>
-            <url>http://dl.bintray.com/jprante/elasticsearch-plugins</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <properties>
         <github.global.server>github</github.global.server>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <elasticsearch.version>1.1.0</elasticsearch.version>
+        <java.compile.version>1.7</java.compile.version>
+        <elasticsearch.version>1.2.1</elasticsearch.version>
         <netty.version>3.9.0.Final</netty.version>
     </properties>
 
@@ -100,6 +87,13 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-ssh-external</artifactId>
+                <version>2.6</version>
+            </extension>
+        </extensions>
         <resources>
             <resource>
                 <directory>${basedir}/src/main/resources</directory>
@@ -121,8 +115,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.1</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>${java.compile.version}</source>
+                    <target>${java.compile.version}</target>
                     <encoding>UTF-8</encoding>
                     <optimize>true</optimize>
                     <showDeprecation>true</showDeprecation>

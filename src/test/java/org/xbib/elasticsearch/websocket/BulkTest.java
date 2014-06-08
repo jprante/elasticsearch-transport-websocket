@@ -16,7 +16,7 @@ import org.xbib.elasticsearch.websocket.client.WebSocketActionListener;
 import org.xbib.elasticsearch.websocket.client.WebSocketClient;
 import org.xbib.elasticsearch.websocket.client.WebSocketClientFactory;
 import org.xbib.elasticsearch.websocket.helper.AbstractNodeTestHelper;
-import org.xbib.elasticsearch.websocket.http.netty.client.NettyWebSocketClientFactory;
+import org.xbib.elasticsearch.http.netty.client.NettyWebSocketClientFactory;
 
 public class BulkTest extends AbstractNodeTestHelper {
 

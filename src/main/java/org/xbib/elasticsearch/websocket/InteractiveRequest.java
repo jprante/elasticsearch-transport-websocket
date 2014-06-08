@@ -1,34 +1,34 @@
-
 package org.xbib.elasticsearch.websocket;
 
-import java.util.Map;
 import org.elasticsearch.common.unit.TimeValue;
+
+import java.util.Map;
 
 /**
  * The InteractiveRequest manages parameters in an interaction.
  */
 public interface InteractiveRequest {
 
-     Map<String,Object> asMap();
-    
-     boolean hasParam(String key);
+    Map<String, Object> asMap();
 
-     Object param(String key);
+    boolean hasParam(String key);
 
-     String paramAsString(String key);
-     
-     String paramAsString(String key, String defaultValue);
+    Object param(String key);
 
-     long paramAsLong(String key);
-     
-     long paramAsLong(String key, long defaultValue);
-     
-     boolean paramAsBoolean(String key);
-     
-     boolean paramAsBoolean(String key, boolean defaultValue);
-     
-     TimeValue paramAsTime(String key);
-     
-     TimeValue paramAsTime(String key, TimeValue defaultValue);
-     
+    String paramAsString(String key);
+
+    String paramAsString(String key, String defaultValue);
+
+    long paramAsLong(String key);
+
+    long paramAsLong(String key, long defaultValue);
+
+    boolean paramAsBoolean(String key);
+
+    boolean paramAsBoolean(String key, boolean defaultValue);
+
+    TimeValue paramAsTime(String key);
+
+    TimeValue paramAsTime(String key, TimeValue defaultValue);
+
 }

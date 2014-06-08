@@ -1,4 +1,3 @@
-
 package org.xbib.elasticsearch.websocket.client;
 
 import org.jboss.netty.channel.Channel;
@@ -12,10 +11,11 @@ public interface WebSocketClient<F extends ChannelFuture, Frame extends WebSocke
 
     /**
      * The channel this client has opened.
+     *
      * @return the channel
      */
     Channel channel();
-    
+
     /**
      * Connect to host and port.
      *

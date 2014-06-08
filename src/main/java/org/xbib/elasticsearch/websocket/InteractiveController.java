@@ -1,29 +1,27 @@
-
 package org.xbib.elasticsearch.websocket;
 
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
-
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.handler.codec. http.websocketx.CloseWebSocketFrame;
+import org.jboss.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
+import org.xbib.elasticsearch.http.netty.NettyInteractiveChannel;
+import org.xbib.elasticsearch.http.netty.NettyInteractiveRequest;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.xbib.elasticsearch.websocket.http.netty.NettyInteractiveChannel;
-import org.xbib.elasticsearch.websocket.http.netty.NettyInteractiveRequest;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The InteractiveController controls the presence of websocket connections
@@ -67,7 +65,7 @@ public class InteractiveController extends AbstractLifecycleComponent<Interactiv
     public void frame(WebSocketServerHandshaker handshaker, WebSocketFrame frame, ChannelHandlerContext context) {
         Channel channel = context.getChannel();
         if (frame instanceof TextWebSocketFrame) {
-            text((TextWebSocketFrame) frame,channel);
+            text((TextWebSocketFrame) frame, channel);
         } else if (handshaker != null && frame instanceof CloseWebSocketFrame) {
             handshaker.close(context.getChannel(), (CloseWebSocketFrame) frame);
             presence(Presence.DISCONNECTED, null, channel);

@@ -1,22 +1,20 @@
-
 package org.xbib.elasticsearch.plugin.websocket;
-
-import java.util.Collection;
 
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
+import org.xbib.elasticsearch.plugin.websocket.WebSocketModule;
+import org.xbib.elasticsearch.action.pubsub.Checkpointer;
+import org.xbib.elasticsearch.http.HttpServer;
+import org.xbib.elasticsearch.http.HttpServerModule;
+import org.xbib.elasticsearch.rest.action.websocket.RestPublishAction;
+import org.xbib.elasticsearch.rest.action.websocket.RestUnsubscribeAction;
+
+import java.util.Collection;
 
 import static org.elasticsearch.common.collect.Lists.newArrayList;
-
-import org.xbib.elasticsearch.websocket.WebSocketModule;
-import org.xbib.elasticsearch.websocket.action.pubsub.Checkpointer;
-import org.xbib.elasticsearch.websocket.http.HttpServer;
-import org.xbib.elasticsearch.websocket.http.HttpServerModule;
-import org.xbib.elasticsearch.websocket.rest.action.RestPublishAction;
-import org.xbib.elasticsearch.websocket.rest.action.RestUnsubscribeAction;
 
 /**
  * Websocket plugin
@@ -51,15 +49,16 @@ public class WebSocketPlugin extends AbstractPlugin {
         return modules;
     }
 
-   @Override public Collection<Class<? extends LifecycleComponent>> services() {
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> services() {
         Collection<Class<? extends LifecycleComponent>> services = newArrayList();
         if (settings.getAsBoolean("websocket.enabled", true)) {
             services.add(HttpServer.class);
             services.add(Checkpointer.class);
         }
         return services;
-    }    
-  
+    }
+
     public void onModule(RestModule module) {
         module.addRestAction(RestPublishAction.class);
         module.addRestAction(RestUnsubscribeAction.class);

@@ -1,4 +1,3 @@
-
 package org.xbib.elasticsearch.plugin.websocket;
 
 import java.io.ByteArrayOutputStream;

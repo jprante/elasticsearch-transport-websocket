@@ -1,4 +1,3 @@
-
 package org.xbib.elasticsearch.websocket;
 
 /**

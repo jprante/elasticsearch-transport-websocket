@@ -1,4 +1,3 @@
-
 package org.xbib.elasticsearch.websocket;
 
 import org.elasticsearch.client.Client;
@@ -7,10 +6,9 @@ import org.elasticsearch.common.settings.Settings;
 
 /**
  * The BaseInteractiveHandler is the base class for interactive actions.
- * 
  */
-public abstract class BaseInteractiveHandler extends AbstractComponent 
-    implements InteractiveHandler {
+public abstract class BaseInteractiveHandler extends AbstractComponent
+        implements InteractiveHandler {
 
     protected final Client client;
 

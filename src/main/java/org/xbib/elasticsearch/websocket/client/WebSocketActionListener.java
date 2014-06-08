@@ -1,14 +1,14 @@
-
 package org.xbib.elasticsearch.websocket.client;
 
-import java.io.IOException;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
 
+import java.io.IOException;
+
 /**
- *  Listening to WebSocket actions.
- * 
+ * Listening to WebSocket actions.
+ *
  * @param <C>
- * @param <F> 
+ * @param <F>
  */
 public interface WebSocketActionListener<C extends WebSocketClient, F extends WebSocketFrame> {
 
@@ -30,7 +30,7 @@ public interface WebSocketActionListener<C extends WebSocketClient, F extends We
      * Called when a message arrives from the server
      *
      * @param client the connected client
-     * @param frame the data received from server
+     * @param frame  the data received from server
      */
     void onMessage(C client, F frame) throws IOException;
 
@@ -58,7 +58,7 @@ public interface WebSocketActionListener<C extends WebSocketClient, F extends We
         @Override
         public void onError(Throwable t) throws IOException {
         }
-        
+
     }
-    
+
 }
