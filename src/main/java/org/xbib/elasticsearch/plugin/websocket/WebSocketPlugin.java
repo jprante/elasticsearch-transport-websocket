@@ -1,11 +1,13 @@
 package org.xbib.elasticsearch.plugin.websocket;
 
+import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
-import org.xbib.elasticsearch.plugin.websocket.WebSocketModule;
+import org.xbib.elasticsearch.action.cluster.admin.info.TransportWebsocketInfoAction;
+import org.xbib.elasticsearch.action.cluster.admin.info.WebsocketInfoAction;
 import org.xbib.elasticsearch.action.pubsub.Checkpointer;
 import org.xbib.elasticsearch.http.HttpServer;
 import org.xbib.elasticsearch.http.HttpServerModule;
@@ -57,6 +59,10 @@ public class WebSocketPlugin extends AbstractPlugin {
             services.add(Checkpointer.class);
         }
         return services;
+    }
+
+    public void onModule(ActionModule module) {
+        module.registerAction(WebsocketInfoAction.INSTANCE, TransportWebsocketInfoAction.class);
     }
 
     public void onModule(RestModule module) {

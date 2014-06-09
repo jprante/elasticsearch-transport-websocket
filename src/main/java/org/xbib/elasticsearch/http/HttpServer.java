@@ -1,11 +1,13 @@
 package org.xbib.elasticsearch.http;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.collect.ImmutableMap;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -52,7 +54,6 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
 
     private final PluginSiteFilter pluginSiteFilter = new PluginSiteFilter();
 
-
     @Inject
     public HttpServer(Settings settings, Environment environment,
                       HttpServerTransport transport,
@@ -67,8 +68,6 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
         this.httpPatchRestController = httpPatchRestController;
         this.interActiveController = interActiveController;
         this.nodeService = nodeService;
-        // the hook into nodeService can not be used here because of class cast
-        //nodeService.setHttpServer(this);
 
         this.disableSites = componentSettings.getAsBoolean("disable_sites", false);
 
@@ -129,6 +128,10 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
         transport.close();
     }
 
+    public TransportAddress address() {
+        return transport.boundAddress().publishAddress();
+    }
+
     public HttpInfo info() {
         return transport.info();
     }
@@ -147,8 +150,12 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
             filterChain.continueProcessing(request, channel);
             return;
         }
-        restController.dispatchRequest(request, channel);
-        httpPatchRestController.dispatchRequest(request, channel);
+        try {
+            restController.dispatchRequest(request, channel);
+        } catch (ElasticsearchIllegalArgumentException e) {
+            // unsupported HTTP method, try HTTP PATCH
+            httpPatchRestController.dispatchRequest(request, channel);
+        }
     }
 
     public void internalPresence(Presence presence, String topic, Channel channel) {

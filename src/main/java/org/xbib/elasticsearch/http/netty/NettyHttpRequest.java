@@ -1,8 +1,10 @@
 package org.xbib.elasticsearch.http.netty;
 
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.rest.support.RestUtils;
+import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.xbib.elasticsearch.common.bytes.ChannelBufferBytesReference;
 import org.xbib.elasticsearch.http.HttpRequest;
 
@@ -44,7 +46,28 @@ public class NettyHttpRequest extends HttpRequest {
 
     @Override
     public Method method() {
-        throw new UnsupportedOperationException();
+        HttpMethod httpMethod = request.getMethod();
+        if (httpMethod == HttpMethod.GET)
+            return Method.GET;
+
+        if (httpMethod == HttpMethod.POST)
+            return Method.POST;
+
+        if (httpMethod == HttpMethod.PUT)
+            return Method.PUT;
+
+        if (httpMethod == HttpMethod.DELETE)
+            return Method.DELETE;
+
+        if (httpMethod == HttpMethod.HEAD) {
+            return Method.HEAD;
+        }
+
+        if (httpMethod == HttpMethod.OPTIONS) {
+            return Method.OPTIONS;
+        }
+
+        throw new ElasticsearchIllegalArgumentException("unsupported method " + httpMethod.getName());
     }
 
     @Override

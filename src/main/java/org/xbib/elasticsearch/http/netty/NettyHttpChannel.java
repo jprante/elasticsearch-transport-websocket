@@ -2,8 +2,6 @@ package org.xbib.elasticsearch.http.netty;
 
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.UnicodeUtil;
-import org.xbib.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.xbib.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.RestStatus;
@@ -28,9 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- *
- */
 public class NettyHttpChannel extends HttpChannel {
 
     private static final ChannelBuffer END_JSONP;
@@ -58,11 +53,7 @@ public class NettyHttpChannel extends HttpChannel {
 
     @Override
     public org.elasticsearch.common.io.stream.BytesStreamOutput newBytesOutput() {
-        throw new UnsupportedOperationException();
-    }
-
-    public BytesStreamOutput newXbibBytesOutput() {
-        return new ReleasableBytesStreamOutput(transport.bigArrays);
+        return new org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput(transport.bigArrays);
     }
 
     @Override

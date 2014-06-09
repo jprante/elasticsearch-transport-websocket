@@ -34,12 +34,12 @@ Motivations for implementing an Elasticsearch WebSocket transport layer are
 
 | Elasticsearch version    | Plugin      | Release date |
 | ------------------------ | ----------- | -------------|
-| 1.2.1                    | 1.2.1.0     | Jun  8, 2014 |
+| 1.2.1                    | 1.2.1.1     | Jun  9, 2014 |
 
 ## Installation
 
 ```
-./bin/plugin -install websocket -url http://xbib.org/repository/org/xbib/elasticsearch/plugin/elasticsearch-websocket/1.2.1.0/elasticsearch-websocket-1.2.1.0.zip
+./bin/plugin -install websocket -url http://xbib.org/repository/org/xbib/elasticsearch/plugin/elasticsearch-websocket/1.2.1.1/elasticsearch-websocket-1.2.1.1.zip
 ```
 
 Do not forget to restart the node after installing.
@@ -48,7 +48,7 @@ Do not forget to restart the node after installing.
 
 | File                                          | SHA1                                     |
 | --------------------------------------------- | -----------------------------------------|
-| elasticsearch-websocket-1.2.1.0.zip           | e31d348968a99ba89ddc2c4647207329427be862 |
+| elasticsearch-websocket-1.2.1.1.zip           | 8c36f8589a90dfec9b3eb362858ed2f869db601c |
 
 ## Project docs
 
