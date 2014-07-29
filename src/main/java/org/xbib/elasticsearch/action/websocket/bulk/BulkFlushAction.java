@@ -16,8 +16,7 @@ public class BulkFlushAction extends BulkHandler {
     private final static String TYPE = "flush";
 
     @Inject
-    public BulkFlushAction(Settings settings,
-                           Client client, InteractiveController controller) {
+    public BulkFlushAction(Settings settings, Client client, InteractiveController controller) {
         super(settings, client);
         controller.registerHandler(TYPE, this);
     }

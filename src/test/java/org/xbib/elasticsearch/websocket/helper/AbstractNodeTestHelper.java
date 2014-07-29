@@ -14,9 +14,9 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.node.Node;
 import org.junit.After;
 import org.junit.Before;
-import org.xbib.elasticsearch.action.cluster.admin.info.WebsocketInfoAction;
-import org.xbib.elasticsearch.action.cluster.admin.info.WebsocketInfoRequest;
-import org.xbib.elasticsearch.action.cluster.admin.info.WebsocketInfoResponse;
+import org.xbib.elasticsearch.action.cluster.admin.websocket.WebsocketInfoAction;
+import org.xbib.elasticsearch.action.cluster.admin.websocket.WebsocketInfoRequest;
+import org.xbib.elasticsearch.action.cluster.admin.websocket.WebsocketInfoResponse;
 
 import java.net.URI;
 import java.util.Map;

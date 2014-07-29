@@ -2,13 +2,13 @@ package org.xbib.elasticsearch.websocket;
 
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.xbib.elasticsearch.action.bulk.BulkDeleteAction;
-import org.xbib.elasticsearch.action.bulk.BulkFlushAction;
-import org.xbib.elasticsearch.action.bulk.BulkIndexAction;
-import org.xbib.elasticsearch.action.pubsub.ForwardAction;
-import org.xbib.elasticsearch.action.pubsub.PublishAction;
-import org.xbib.elasticsearch.action.pubsub.SubscribeAction;
-import org.xbib.elasticsearch.action.pubsub.UnsubscribeAction;
+import org.xbib.elasticsearch.action.websocket.bulk.BulkDeleteAction;
+import org.xbib.elasticsearch.action.websocket.bulk.BulkFlushAction;
+import org.xbib.elasticsearch.action.websocket.bulk.BulkIndexAction;
+import org.xbib.elasticsearch.action.websocket.pubsub.ForwardAction;
+import org.xbib.elasticsearch.action.websocket.pubsub.PublishAction;
+import org.xbib.elasticsearch.action.websocket.pubsub.SubscribeAction;
+import org.xbib.elasticsearch.action.websocket.pubsub.UnsubscribeAction;
 
 import java.util.List;
 

@@ -12,7 +12,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.Settings;
 import org.xbib.elasticsearch.websocket.InteractiveChannel;
-import org.xbib.elasticsearch.action.bulk.BulkHandler;
+import org.xbib.elasticsearch.action.websocket.bulk.BulkHandler;
 
 import java.io.IOException;
 

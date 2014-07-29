@@ -12,7 +12,7 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.xbib.elasticsearch.rest.XContentRestResponse;
 import org.xbib.elasticsearch.rest.XContentThrowableRestResponse;
-import org.xbib.elasticsearch.action.pubsub.PubSubIndexName;
+import org.xbib.elasticsearch.action.websocket.pubsub.PubSubIndexName;
 
 import java.io.IOException;
 
@@ -37,7 +37,7 @@ public class RestUnsubscribeAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel) {
+    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) {
         String subscriberId = request.hasParam("subscriber") ? request.param("subscriber") : null;
         if (subscriberId == null) {
             try {

@@ -9,7 +9,6 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.internal.InternalClient;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -195,7 +194,7 @@ public class BulkHandler extends BaseInteractiveHandler {
         this.semaphore = new Semaphore(concurrentRequests);
         this.flushInterval = flushInterval;
         if (flushInterval != null) {
-            this.scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1, EsExecutors.daemonThreadFactory(((InternalClient) client).settings(), "websocket_bulk_processor"));
+            this.scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1, EsExecutors.daemonThreadFactory(client.settings(), "websocket_bulk_processor"));
             this.scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
             this.scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
             this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(new BulkHandler.Flush(), flushInterval.millis(), flushInterval.millis(), TimeUnit.MILLISECONDS);

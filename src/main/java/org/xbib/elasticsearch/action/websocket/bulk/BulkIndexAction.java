@@ -17,8 +17,7 @@ public class BulkIndexAction extends BulkHandler {
     private final static String TYPE = "index";
 
     @Inject
-    public BulkIndexAction(Settings settings,
-                           Client client, InteractiveController controller) {
+    public BulkIndexAction(Settings settings, Client client, InteractiveController controller) {
         super(settings, client);
         controller.registerHandler(TYPE, this);
     }

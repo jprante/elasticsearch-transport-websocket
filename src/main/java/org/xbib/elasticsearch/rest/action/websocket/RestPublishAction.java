@@ -19,8 +19,8 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 import org.jboss.netty.channel.Channel;
-import org.xbib.elasticsearch.action.pubsub.Checkpointer;
-import org.xbib.elasticsearch.action.pubsub.PubSubIndexName;
+import org.xbib.elasticsearch.action.websocket.pubsub.Checkpointer;
+import org.xbib.elasticsearch.action.websocket.pubsub.PubSubIndexName;
 import org.xbib.elasticsearch.http.HttpServerTransport;
 import org.xbib.elasticsearch.http.netty.NettyInteractiveResponse;
 import org.xbib.elasticsearch.rest.XContentRestResponse;
@@ -62,7 +62,7 @@ public class RestPublishAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel) {
+    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) {
         String topic = request.hasParam("topic") ? request.param("topic") : "*";
         try {
             final XContentBuilder messageBuilder = createPublishMessage(request);
