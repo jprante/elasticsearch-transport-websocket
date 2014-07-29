@@ -1,6 +1,6 @@
-package org.xbib.elasticsearch.action.bulk;
+package org.xbib.elasticsearch.action.websocket.bulk;
 
-import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.inject.Inject;
@@ -10,17 +10,15 @@ import org.xbib.elasticsearch.websocket.InteractiveController;
 import org.xbib.elasticsearch.websocket.InteractiveRequest;
 
 import java.io.IOException;
+import java.util.Map;
 
-/**
- * Bulk delete action
- */
-public class BulkDeleteAction extends BulkHandler {
+public class BulkIndexAction extends BulkHandler {
 
-    private final static String TYPE = "delete";
+    private final static String TYPE = "index";
 
     @Inject
-    public BulkDeleteAction(Settings settings,
-                            Client client, InteractiveController controller) {
+    public BulkIndexAction(Settings settings,
+                           Client client, InteractiveController controller) {
         super(settings, client);
         controller.registerHandler(TYPE, this);
     }
@@ -43,8 +41,9 @@ public class BulkDeleteAction extends BulkHandler {
                 channel.sendResponse(TYPE, new IllegalArgumentException("id is null"));
                 return;
             }
-            DeleteRequest deleteRequest = Requests.deleteRequest(index).type(type).id(id);
-            add(deleteRequest, channel);
+            IndexRequest indexRequest = Requests.indexRequest(index).type(type).id(id)
+                    .source((Map<String, Object>) request.asMap().get("data"));
+            add(indexRequest, channel);
         } catch (IOException ex) {
             try {
                 channel.sendResponse(TYPE, ex);

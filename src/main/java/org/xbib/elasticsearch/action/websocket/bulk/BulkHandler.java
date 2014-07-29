@@ -1,4 +1,4 @@
-package org.xbib.elasticsearch.action.bulk;
+package org.xbib.elasticsearch.action.websocket.bulk;
 
 import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.action.ActionListener;

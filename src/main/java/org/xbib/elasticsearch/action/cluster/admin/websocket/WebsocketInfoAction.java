@@ -1,5 +1,5 @@
 
-package org.xbib.elasticsearch.action.cluster.admin.info;
+package org.xbib.elasticsearch.action.cluster.admin.websocket;
 
 import org.elasticsearch.action.admin.cluster.ClusterAction;
 import org.elasticsearch.client.ClusterAdminClient;

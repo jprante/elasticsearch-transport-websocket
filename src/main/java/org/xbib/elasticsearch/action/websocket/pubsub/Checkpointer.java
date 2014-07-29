@@ -1,4 +1,4 @@
-package org.xbib.elasticsearch.action.pubsub;
+package org.xbib.elasticsearch.action.websocket.pubsub;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.delete.DeleteRequest;

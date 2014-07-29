@@ -1,4 +1,4 @@
-package org.xbib.elasticsearch.action.bulk;
+package org.xbib.elasticsearch.action.websocket.bulk;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;

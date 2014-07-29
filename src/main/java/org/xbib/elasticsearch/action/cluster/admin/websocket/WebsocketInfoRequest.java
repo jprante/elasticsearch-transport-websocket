@@ -1,4 +1,4 @@
-package org.xbib.elasticsearch.action.cluster.admin.info;
+package org.xbib.elasticsearch.action.cluster.admin.websocket;
 
 import org.elasticsearch.action.support.nodes.NodesOperationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;

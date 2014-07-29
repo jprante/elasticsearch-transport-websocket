@@ -1,4 +1,4 @@
-package org.xbib.elasticsearch.action.pubsub;
+package org.xbib.elasticsearch.action.websocket.pubsub;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;

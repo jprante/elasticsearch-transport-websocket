@@ -1,4 +1,4 @@
-package org.xbib.elasticsearch.action.cluster.admin.info;
+package org.xbib.elasticsearch.action.cluster.admin.websocket;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.nodes.NodeOperationRequest;
@@ -31,7 +31,7 @@ public class TransportWebsocketInfoAction extends TransportNodesOperationAction<
     public TransportWebsocketInfoAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
                                         ClusterService clusterService, TransportService transportService,
                                         Discovery discovery, HttpServer httpServer) {
-        super(settings, clusterName, threadPool, clusterService, transportService);
+        super(settings, WebsocketInfoAction.NAME, clusterName, threadPool, clusterService, transportService);
         this.discovery = discovery;
         this.httpServer = httpServer;
     }
@@ -39,11 +39,6 @@ public class TransportWebsocketInfoAction extends TransportNodesOperationAction<
     @Override
     protected String executor() {
         return ThreadPool.Names.MANAGEMENT;
-    }
-
-    @Override
-    protected String transportAction() {
-        return WebsocketInfoAction.NAME;
     }
 
     @Override

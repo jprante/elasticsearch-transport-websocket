@@ -94,6 +94,8 @@ public class NettyWebSocketServerTransport
 
     private final String publishHost;
 
+    private final Boolean onsiteonly;
+
     private final Boolean tcpNoDelay;
 
     private final Boolean tcpKeepAlive;
@@ -137,6 +139,15 @@ public class NettyWebSocketServerTransport
             System.setProperty("org.jboss.netty.epollBugWorkaround", "true");
         }
 
+        String hostname = "localhost";
+        try {
+            // doing a reverse lookup on the server's IP address using the naming service (DNS) configured in the OS
+            hostname = InetAddress.getLocalHost().getHostName();
+            logger.info("detected host name by reverse IP lookup: {}", hostname);
+        } catch (Exception e) {
+            logger.warn("unable to look up this machine's host name, assuming localhost. Check your DNS for correct setup");
+        }
+
         ByteSizeValue maxContentLength = componentSettings.getAsBytesSize("max_content_length", settings.getAsBytesSize("websocket.max_content_length", new ByteSizeValue(100, ByteSizeUnit.MB)));
         this.maxChunkSize = componentSettings.getAsBytesSize("max_chunk_size", settings.getAsBytesSize("websocket.max_chunk_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
         this.maxHeaderSize = componentSettings.getAsBytesSize("max_header_size", settings.getAsBytesSize("websocket.max_header_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
@@ -148,8 +159,9 @@ public class NettyWebSocketServerTransport
         this.maxCompositeBufferComponents = componentSettings.getAsInt("max_composite_buffer_components", -1);
         this.workerCount = componentSettings.getAsInt("worker_count", Runtime.getRuntime().availableProcessors() * 2);
         this.port = componentSettings.get("port", settings.get("websocket.port", "9400-9500"));
-        this.bindHost = componentSettings.get("bind_host", settings.get("websocket.bind_host", settings.get("websocket.host")));
-        this.publishHost = componentSettings.get("publish_host", settings.get("websocket.publish_host", settings.get("websocket.host")));
+        this.bindHost = componentSettings.get("bind_host", settings.get("websocket.bind_host", settings.get("websocket.host", hostname)));
+        this.publishHost = componentSettings.get("publish_host", settings.get("websocket.publish_host", settings.get("websocket.host", hostname)));
+        this.onsiteonly = componentSettings.getAsBoolean("onsiteonly", settings.getAsBoolean("websocket.onsiteonly", true));
         this.tcpNoDelay = componentSettings.getAsBoolean("tcp_no_delay", settings.getAsBoolean(TCP_NO_DELAY, true));
         this.tcpKeepAlive = componentSettings.getAsBoolean("tcp_keep_alive", settings.getAsBoolean(TCP_KEEP_ALIVE, true));
         this.reuseAddress = componentSettings.getAsBoolean("reuse_address", settings.getAsBoolean(TCP_REUSE_ADDRESS, NetworkUtils.defaultReuseAddress()));
@@ -234,6 +246,17 @@ public class NettyWebSocketServerTransport
             throw new BindHttpException("Failed to resolve host [" + bindHost + "]", e);
         }
         final InetAddress hostAddress = hostAddressX;
+
+        // Fail if host address is a public IP but only on-site networking is allowed.
+        if (onsiteonly) {
+            if (hostAddress == null || (!hostAddress.isLoopbackAddress()
+                    && !hostAddress.isLinkLocalAddress()
+                    && !hostAddress.isSiteLocalAddress())) {
+                throw new ElasticsearchException("Bind host " + bindHost
+                        + (hostAddress != null ? "(address " + hostAddress + ") " : "")
+                        + "is not on-site and not permitted by default. Check 'websocket.onsiteonly' setting in configuration.");
+            }
+        }
 
         PortsRange portsRange = new PortsRange(port);
         final AtomicReference<Exception> lastException = new AtomicReference();
