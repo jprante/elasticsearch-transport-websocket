@@ -34,13 +34,14 @@ Motivations for implementing an Elasticsearch WebSocket transport layer are
 
 | Elasticsearch version    | Plugin      | Release date |
 | ------------------------ | ----------- | -------------|
+| 1.3.1                    | 1.3.1.0     | Jul 30, 2014 |
 | 1.2.1                    | 1.2.1.1     | Jun  9, 2014 |
 
 ## Installation
 
-```
-./bin/plugin -install websocket -url http://xbib.org/repository/org/xbib/elasticsearch/plugin/elasticsearch-websocket/1.2.1.1/elasticsearch-websocket-1.2.1.1.zip
-```
+
+    ./bin/plugin -install websocket -url http://xbib.org/repository/org/xbib/elasticsearch/plugin/elasticsearch-transport-websocket/1.3.1.0/elasticsearch-transport-websocket-1.3.1.0-plugin.zip
+
 
 Do not forget to restart the node after installing.
 
@@ -48,15 +49,16 @@ Do not forget to restart the node after installing.
 
 | File                                          | SHA1                                     |
 | --------------------------------------------- | -----------------------------------------|
+| elasticsearch-websocket-1.3.1.0-plugin.zip    | 810a6bbaf326402242de72f5e5e156046bf4400d |
 | elasticsearch-websocket-1.2.1.1.zip           | 8c36f8589a90dfec9b3eb362858ed2f869db601c |
 
 ## Project docs
 
-The Maven project site is available at [Github](http://jprante.github.io/elasticsearch-websocket)
+The Maven project site is available at [Github](http://jprante.github.io/elasticsearch-transport-websocket)
 
 ## Issues
 
-All feedback is welcome! If you find issues, please post them at [Github](https://github.com/jprante/elasticsearch-websocket/issues)
+All feedback is welcome! If you find issues, please post them at [Github](https://github.com/jprante/elasticsearch-transport-websocket/issues)
 
 Overview
 --------
