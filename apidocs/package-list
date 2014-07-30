@@ -1,5 +1,6 @@
-org.xbib.elasticsearch.action.bulk
-org.xbib.elasticsearch.action.pubsub
+org.xbib.elasticsearch.action.cluster.admin.websocket
+org.xbib.elasticsearch.action.websocket.bulk
+org.xbib.elasticsearch.action.websocket.pubsub
 org.xbib.elasticsearch.common.bytes
 org.xbib.elasticsearch.common.io
 org.xbib.elasticsearch.common.io.stream

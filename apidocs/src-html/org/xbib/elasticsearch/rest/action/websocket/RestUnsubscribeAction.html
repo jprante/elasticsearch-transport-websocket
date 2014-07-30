@@ -20,7 +20,7 @@
 <span class="sourceLineNo">012</span>import org.elasticsearch.rest.RestRequest;<a name="line.12"></a>
 <span class="sourceLineNo">013</span>import org.xbib.elasticsearch.rest.XContentRestResponse;<a name="line.13"></a>
 <span class="sourceLineNo">014</span>import org.xbib.elasticsearch.rest.XContentThrowableRestResponse;<a name="line.14"></a>
-<span class="sourceLineNo">015</span>import org.xbib.elasticsearch.action.pubsub.PubSubIndexName;<a name="line.15"></a>
+<span class="sourceLineNo">015</span>import org.xbib.elasticsearch.action.websocket.pubsub.PubSubIndexName;<a name="line.15"></a>
 <span class="sourceLineNo">016</span><a name="line.16"></a>
 <span class="sourceLineNo">017</span>import java.io.IOException;<a name="line.17"></a>
 <span class="sourceLineNo">018</span><a name="line.18"></a>
@@ -45,7 +45,7 @@
 <span class="sourceLineNo">037</span>    }<a name="line.37"></a>
 <span class="sourceLineNo">038</span><a name="line.38"></a>
 <span class="sourceLineNo">039</span>    @Override<a name="line.39"></a>
-<span class="sourceLineNo">040</span>    public void handleRequest(final RestRequest request, final RestChannel channel) {<a name="line.40"></a>
+<span class="sourceLineNo">040</span>    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) {<a name="line.40"></a>
 <span class="sourceLineNo">041</span>        String subscriberId = request.hasParam("subscriber") ? request.param("subscriber") : null;<a name="line.41"></a>
 <span class="sourceLineNo">042</span>        if (subscriberId == null) {<a name="line.42"></a>
 <span class="sourceLineNo">043</span>            try {<a name="line.43"></a>
