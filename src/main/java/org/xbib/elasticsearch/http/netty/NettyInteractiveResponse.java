@@ -50,7 +50,7 @@ public class NettyInteractiveResponse implements InteractiveResponse {
      * The response frame with content, ready for writing to a Channel
      *
      * @return a TextWebSocketFrame
-     * @throws IOException
+     * @throws IOException if response fails
      */
     @Override
     public TextWebSocketFrame response() throws IOException {

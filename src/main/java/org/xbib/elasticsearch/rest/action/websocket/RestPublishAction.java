@@ -53,7 +53,7 @@ public class RestPublishAction extends BaseRestHandler {
                              RestController restController,
                              HttpServerTransport transport,
                              Checkpointer service) {
-        super(settings, client);
+        super(settings, restController, client);
         this.pubSubIndexName = PubSubIndexName.Conf.indexName(settings);
         this.transport = transport;
         this.service = service;

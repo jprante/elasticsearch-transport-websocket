@@ -14,18 +14,18 @@ public interface WebSocketServerAdapter {
     /**
      * Emit a presence event.
      *
-     * @param presence
-     * @param topic
-     * @param channel
+     * @param presence presence
+     * @param topic topic
+     * @param channel channel
      */
     void presence(Presence presence, String topic, Channel channel);
 
     /**
      * Emit a frame.
      *
-     * @param handshaker
-     * @param frame
-     * @param context
+     * @param handshaker handshaker
+     * @param frame frame
+     * @param context context
      */
     void frame(WebSocketServerHandshaker handshaker, WebSocketFrame frame, ChannelHandlerContext context);
 }

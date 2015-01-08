@@ -7,8 +7,8 @@ import java.io.IOException;
 /**
  * Listening to WebSocket actions.
  *
- * @param <C>
- * @param <F>
+ * @param <C> the WebSocketClient class parameter
+ * @param <F> the WebSocketFrame class parameter
  */
 public interface WebSocketActionListener<C extends WebSocketClient, F extends WebSocketFrame> {
 
@@ -16,6 +16,7 @@ public interface WebSocketActionListener<C extends WebSocketClient, F extends We
      * Called when the client is connected to the server
      *
      * @param client Current client used to connect
+     * @throws java.io.IOException if this method fails
      */
     void onConnect(C client) throws IOException;
 
@@ -23,6 +24,7 @@ public interface WebSocketActionListener<C extends WebSocketClient, F extends We
      * Called when the client got disconnected from the server
      *
      * @param client Current client that was disconnected
+     * @throws java.io.IOException if this method fails
      */
     void onDisconnect(C client) throws IOException;
 
@@ -31,6 +33,7 @@ public interface WebSocketActionListener<C extends WebSocketClient, F extends We
      *
      * @param client the connected client
      * @param frame  the data received from server
+     * @throws java.io.IOException if this method fails
      */
     void onMessage(C client, F frame) throws IOException;
 
@@ -38,6 +41,7 @@ public interface WebSocketActionListener<C extends WebSocketClient, F extends We
      * Called when an unhandled errors occurs.
      *
      * @param t The causing error
+     * @throws java.io.IOException if this method fails
      */
     void onError(Throwable t) throws IOException;
 

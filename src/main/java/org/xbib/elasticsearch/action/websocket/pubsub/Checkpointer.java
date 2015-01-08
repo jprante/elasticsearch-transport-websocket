@@ -59,7 +59,7 @@ public class Checkpointer extends AbstractLifecycleComponent<Checkpointer> {
      * checkpointing and flushCheckpoint() needs to be called after all is done.
      *
      * @param id topic or subscriber
-     * @throws IOException
+     * @throws IOException if this method fails
      */
     public void checkpoint(String id) throws IOException {
         indexBulk(Requests.indexRequest(pubSubIndexName).type(TYPE).id(id)
@@ -88,7 +88,7 @@ public class Checkpointer extends AbstractLifecycleComponent<Checkpointer> {
      *
      * @param request the index request
      * @param channel the interactive channel
-     * @throws IOException
+     * @throws IOException if this method fails
      */
     public void indexBulk(IndexRequest request, InteractiveChannel channel) throws IOException {
         bulkHandler.add(request, channel);
@@ -99,7 +99,7 @@ public class Checkpointer extends AbstractLifecycleComponent<Checkpointer> {
      *
      * @param request the delete request
      * @param channel the interactive channel
-     * @throws IOException
+     * @throws IOException if this method fails
      */
     public void deleteBulk(DeleteRequest request, InteractiveChannel channel) throws IOException {
         bulkHandler.add(request, channel);
@@ -109,7 +109,7 @@ public class Checkpointer extends AbstractLifecycleComponent<Checkpointer> {
      * Flush bulk
      *
      * @param channel the interactive channel
-     * @throws IOException
+     * @throws IOException if this method fails
      */
     public void flushBulk(InteractiveChannel channel) throws IOException {
         bulkHandler.flush();

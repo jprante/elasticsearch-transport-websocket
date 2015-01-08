@@ -1,6 +1,7 @@
 package org.xbib.elasticsearch.action.cluster.admin.websocket;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.NodeOperationRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -30,8 +31,8 @@ public class TransportWebsocketInfoAction extends TransportNodesOperationAction<
     @Inject
     public TransportWebsocketInfoAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
                                         ClusterService clusterService, TransportService transportService,
-                                        Discovery discovery, HttpServer httpServer) {
-        super(settings, WebsocketInfoAction.NAME, clusterName, threadPool, clusterService, transportService);
+                                        Discovery discovery, HttpServer httpServer, ActionFilters actionFilters) {
+        super(settings, WebsocketInfoAction.NAME, clusterName, threadPool, clusterService, transportService, actionFilters);
         this.discovery = discovery;
         this.httpServer = httpServer;
     }

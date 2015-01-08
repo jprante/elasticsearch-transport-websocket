@@ -29,21 +29,21 @@ public interface HttpServerTransport extends LifecycleComponent<HttpServerTransp
     /**
      * Set HTTP server adapter
      *
-     * @param httpServerAdapter
+     * @param httpServerAdapter HTTP server adapter
      */
     void httpServerAdapter(HttpServerAdapter httpServerAdapter);
 
     /**
      * Set WebSocket server adapter
      *
-     * @param webSocketServerAdapter
+     * @param webSocketServerAdapter web socket server adapter
      */
     void webSocketServerAdapter(WebSocketServerAdapter webSocketServerAdapter);
 
     /**
      * Find channel for a given channel ID
      *
-     * @param id
+     * @param id id
      * @return channel or null
      */
     Channel channel(Integer id);
@@ -51,9 +51,9 @@ public interface HttpServerTransport extends LifecycleComponent<HttpServerTransp
     /**
      * Forward a message to a node for a given channel ID
      *
-     * @param nodeAdress
-     * @param channelId
-     * @param message
+     * @param nodeAdress node address
+     * @param channelId channel ID
+     * @param message message
      */
     void forward(String nodeAdress, Integer channelId, XContentBuilder message);
 }

@@ -20,7 +20,6 @@ import java.util.concurrent.Executors;
 /**
  * A factory for creating Websocket clients. The entry point for creating and
  * connecting a client. Can and should be used to create multiple instances.
- * <p/>
  * Extended for Websocket client request methods.
  */
 public class NettyWebSocketClientFactory implements WebSocketClientFactory {

@@ -1,7 +1,6 @@
 package org.xbib.elasticsearch.http.netty;
 
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.RestStatus;
@@ -31,8 +30,7 @@ public class NettyHttpChannel extends HttpChannel {
     private static final ChannelBuffer END_JSONP;
 
     static {
-        BytesRef U_END_JSONP = new BytesRef();
-        UnicodeUtil.UTF16toUTF8(");", 0, ");".length(), U_END_JSONP);
+        BytesRef U_END_JSONP = new BytesRef(");");
         END_JSONP = ChannelBuffers.wrappedBuffer(U_END_JSONP.bytes, U_END_JSONP.offset, U_END_JSONP.length);
     }
 
@@ -41,7 +39,6 @@ public class NettyHttpChannel extends HttpChannel {
     private final Channel channel;
 
     private final org.jboss.netty.handler.codec.http.HttpRequest nettyRequest;
-
 
     public NettyHttpChannel(NettyWebSocketServerTransport transport, Channel channel,
                             NettyHttpRequest request) {
@@ -112,8 +109,7 @@ public class NettyHttpChannel extends HttpChannel {
             // handle JSONP
             String callback = request.param("callback");
             if (callback != null) {
-                final BytesRef callbackBytes = new BytesRef(callback.length() * 4 + 1);
-                UnicodeUtil.UTF16toUTF8(callback, 0, callback.length(), callbackBytes);
+                final BytesRef callbackBytes = new BytesRef(callback);
                 callbackBytes.bytes[callbackBytes.length] = '(';
                 callbackBytes.length++;
                 buffer = ChannelBuffers.wrappedBuffer(

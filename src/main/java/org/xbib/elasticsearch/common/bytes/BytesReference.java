@@ -79,81 +79,102 @@ public interface BytesReference {
 
     /**
      * Returns the byte at the specified index. Need to be between 0 and length.
+     * @param index index
+     * @return byte
      */
     byte get(int index);
 
     /**
      * The length.
+     * @return length
      */
     int length();
 
     /**
      * Slice the bytes from the <tt>from</tt> index up to <tt>length</tt>.
+     * @param from from
+     * @param length length
+     * @return byte reference
      */
     BytesReference slice(int from, int length);
 
     /**
      * A stream input of the bytes.
+     * @return byte reference
      */
     StreamInput streamInput();
 
     /**
      * Writes the bytes directly to the output stream.
+     * @param os output stream
+     * @throws java.io.IOException if this method fails
      */
     void writeTo(OutputStream os) throws IOException;
 
     /**
      * Writes the bytes directly to the channel.
+     * @param channel channel
+     * @throws java.io.IOException if this method fails
      */
     void writeTo(GatheringByteChannel channel) throws IOException;
 
     /**
      * Returns the bytes as a single byte array.
+     * @return bytes
      */
     byte[] toBytes();
 
     /**
      * Returns the bytes as a byte array, possibly sharing the underlying byte buffer.
+     * @return byt earray
      */
     BytesArray toBytesArray();
 
     /**
      * Returns the bytes copied over as a byte array.
+     * @return byte array
      */
     BytesArray copyBytesArray();
 
     /**
      * Returns the bytes as a channel buffer.
+     * @return channel buffer
      */
     ChannelBuffer toChannelBuffer();
 
     /**
      * Is there an underlying byte array for this bytes reference.
+     * @return true or false
      */
     boolean hasArray();
 
     /**
      * The underlying byte array (if exists).
+     * @return byte array
      */
     byte[] array();
 
     /**
      * The offset into the underlying byte array.
+     * @return offset
      */
     int arrayOffset();
 
     /**
      * Converts to a string based on utf8.
+     * @return string
      */
     String toUtf8();
 
     /**
      * Converts to Lucene BytesRef.
+     * @return bytes reference
      */
     BytesRef toBytesRef();
 
     /**
      * Converts to a copied Lucene BytesRef.
+     * @return bytes reference
      */
     BytesRef copyBytesRef();
 }

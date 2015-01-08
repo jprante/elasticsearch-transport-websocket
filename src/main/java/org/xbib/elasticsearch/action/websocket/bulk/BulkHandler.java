@@ -74,16 +74,24 @@ public class BulkHandler extends BaseInteractiveHandler {
 
         /**
          * Callback before the bulk is executed.
+         * @param executionId execution ID
+         * @param request request
          */
         void beforeBulk(long executionId, BulkRequest request);
 
         /**
          * Callback after a successful execution of bulk request.
+         * @param executionId execution ID
+         * @param request request
+         * @param response response
          */
         void afterBulk(long executionId, BulkRequest request, BulkResponse response);
 
         /**
          * Callback after a failed execution of bulk request.
+         * @param executionId execution ID
+         * @param request request
+         * @param failure failure
          */
         void afterBulk(long executionId, BulkRequest request, Throwable failure);
     }
@@ -122,6 +130,8 @@ public class BulkHandler extends BaseInteractiveHandler {
          * Creates a builder of bulk processor with the client to use and the
          * listener that will be used to be notified on the completion of bulk
          * requests.
+         * @param client client
+         * @param listener listener
          */
         public Builder(Client client, BulkHandler.Listener listener) {
             this.client = client;
@@ -134,6 +144,8 @@ public class BulkHandler extends BaseInteractiveHandler {
          * executed. A value of 1 means 1 concurrent request is allowed to be
          * executed while accumulating new bulk requests. Defaults to
          * <tt>1</tt>.
+         * @param concurrentRequests concurrent requests
+         * @return this builder
          */
         public BulkHandler.Builder setConcurrentRequests(int concurrentRequests) {
             this.concurrentRequests = concurrentRequests;
@@ -144,6 +156,8 @@ public class BulkHandler extends BaseInteractiveHandler {
          * Sets when to flush a new bulk request based on the number of actions
          * currently added. Defaults to <tt>1000</tt>. Can be set to <tt>-1</tt>
          * to disable it.
+         * @param bulkActions bulk actions
+         * @return this builder
          */
         public BulkHandler.Builder setBulkActions(int bulkActions) {
             this.bulkActions = bulkActions;
@@ -153,10 +167,11 @@ public class BulkHandler extends BaseInteractiveHandler {
         /**
          * Sets a flush interval flushing *any* bulk actions pending if the
          * interval passes. Defaults to not set.
-         * <p/>
          * Note, {@link #setBulkActions(int)} can
          * be set to <tt>-1</tt> with the flush interval set allowing for
          * complete async processing of bulk actions.
+         * @param flushInterval flush interval
+         * @return this builder
          */
         public BulkHandler.Builder setFlushInterval(TimeValue flushInterval) {
             this.flushInterval = flushInterval;
@@ -164,7 +179,8 @@ public class BulkHandler extends BaseInteractiveHandler {
         }
 
         /**
-         * Builds a new bulk processor.
+         * Builds a new bulk handler.
+         * @return bulk handler
          */
         public BulkHandler build() {
             return new BulkHandler(settings, client, listener, concurrentRequests, bulkActions, flushInterval);
@@ -222,6 +238,7 @@ public class BulkHandler extends BaseInteractiveHandler {
 
     /**
      * Flushes open bulk actions
+     * @param channel channel
      */
     public synchronized void flush(InteractiveChannel channel) {
         if (closed) {
@@ -254,6 +271,8 @@ public class BulkHandler extends BaseInteractiveHandler {
      * Adds an {@link IndexRequest} to the list of actions to execute. Follows
      * the same behavior of {@link IndexRequest} (for example, if no id is
      * provided, one will be generated, or usage of the create flag).
+     * @param request the request
+     * @return this bulk handler
      */
     public BulkHandler add(IndexRequest request) {
         return add((ActionRequest) request);
@@ -261,6 +280,8 @@ public class BulkHandler extends BaseInteractiveHandler {
 
     /**
      * Adds an {@link DeleteRequest} to the list of actions to execute.
+     * @param request the request
+     * @return this buk handler
      */
     public BulkHandler add(DeleteRequest request) {
         return add((ActionRequest) request);
@@ -290,6 +311,9 @@ public class BulkHandler extends BaseInteractiveHandler {
      * Adds an {@link IndexRequest} to the list of actions to execute. Follows
      * the same behavior of {@link IndexRequest} (for example, if no id is
      * provided, one will be generated, or usage of the create flag).
+     * @param request request
+     * @param channel channel
+     * @return this bulk handler
      */
     public BulkHandler add(IndexRequest request, InteractiveChannel channel) {
         return add((ActionRequest) request, channel);
@@ -297,6 +321,9 @@ public class BulkHandler extends BaseInteractiveHandler {
 
     /**
      * Adds an {@link DeleteRequest} to the list of actions to execute.
+     * @param request request
+     * @param channel channel
+     * @return this bulk handler
      */
     public BulkHandler add(DeleteRequest request, InteractiveChannel channel) {
         return add((ActionRequest) request, channel);

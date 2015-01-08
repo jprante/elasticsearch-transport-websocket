@@ -1,5 +1,11 @@
 # Elasticsearch WebSocket transport plugin
 
+Follow [@xbib][https://twitter/xbib] on Twitter
+
+> NOTE: I plan to move this plugin over to a Ratpack-based plugin:
+> https://github.com/jprante/elasticsearch-plugin-ratpack
+> If you have questions, concerns, comments, feel free to open an issue.
+
 This is an implementation of WebSockets for Elasticsearch.
 
 WebSockets are implemented as an [Elasticsearch transport plugin](http://www.elasticsearch.org/guide/reference/modules/plugins.html) 
@@ -34,23 +40,15 @@ Motivations for implementing an Elasticsearch WebSocket transport layer are
 
 | Elasticsearch version    | Plugin      | Release date |
 | ------------------------ | ----------- | -------------|
+| 1.4.0                    | 1.4.0.0     | Jan  8, 2015 |
 | 1.3.1                    | 1.3.1.0     | Jul 30, 2014 |
 | 1.2.1                    | 1.2.1.1     | Jun  9, 2014 |
 
 ## Installation
 
-
-    ./bin/plugin -install websocket -url http://xbib.org/repository/org/xbib/elasticsearch/plugin/elasticsearch-transport-websocket/1.3.1.0/elasticsearch-transport-websocket-1.3.1.0-plugin.zip
-
+    ./bin/plugin -install websocket -url http://xbib.org/repository/org/xbib/elasticsearch/plugin/elasticsearch-transport-websocket/1.4.0.0/elasticsearch-transport-websocket-1.4.0.0-plugin.zip
 
 Do not forget to restart the node after installing.
-
-## Checksum
-
-| File                                          | SHA1                                     |
-| --------------------------------------------- | -----------------------------------------|
-| elasticsearch-websocket-1.3.1.0-plugin.zip    | 810a6bbaf326402242de72f5e5e156046bf4400d |
-| elasticsearch-websocket-1.2.1.1.zip           | 8c36f8589a90dfec9b3eb362858ed2f869db601c |
 
 ## Project docs
 

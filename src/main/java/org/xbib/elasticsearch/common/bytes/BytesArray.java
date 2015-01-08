@@ -1,7 +1,6 @@
 package org.xbib.elasticsearch.common.bytes;
 
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.base.Charsets;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -25,8 +24,7 @@ public class BytesArray implements BytesReference {
     private int length;
 
     public BytesArray(String bytes) {
-        BytesRef bytesRef = new BytesRef();
-        UnicodeUtil.UTF16toUTF8(bytes, 0, bytes.length(), bytesRef);
+        BytesRef bytesRef = new BytesRef(bytes);
         this.bytes = bytesRef.bytes;
         this.offset = bytesRef.offset;
         this.length = bytesRef.length;
