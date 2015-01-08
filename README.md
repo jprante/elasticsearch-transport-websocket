@@ -1,6 +1,6 @@
 # Elasticsearch WebSocket transport plugin
 
-Follow [@xbib][https://twitter/xbib] on Twitter
+Follow [@xbib](https://twitter/xbib) on Twitter
 
 > NOTE: I plan to move this plugin over to a Ratpack-based plugin:
 > https://github.com/jprante/elasticsearch-plugin-ratpack
