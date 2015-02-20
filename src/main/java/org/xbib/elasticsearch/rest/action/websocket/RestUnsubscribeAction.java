@@ -30,7 +30,7 @@ public class RestUnsubscribeAction extends BaseRestHandler {
     @Inject
     public RestUnsubscribeAction(Settings settings, Client client,
                                  RestController restController) {
-        super(settings, restController, client);
+        super(settings, client);
         this.pubSubIndexName = PubSubIndexName.Conf.indexName(settings);
         restController.registerHandler(RestRequest.Method.GET, "/_unsubscribe", this);
         restController.registerHandler(RestRequest.Method.POST, "/_unsubscribe", this);
