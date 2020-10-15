@@ -1,3 +1,5 @@
+:warning: **This repository will be removed soon without any further notice**
+
 # Elasticsearch WebSocket transport plugin
 
 Follow [@xbib](https://twitter/xbib) on Twitter
